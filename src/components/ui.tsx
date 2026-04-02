@@ -1,0 +1,345 @@
+import type { ChangeEventHandler, PropsWithChildren, ReactNode } from "react";
+import { motion } from "framer-motion";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+
+import { cn } from "../lib/cn";
+import { formatDateTime, formatFullDateTime, formatNumber, formatPercent } from "../lib/format";
+import type { ForecastRecord } from "../types/api";
+
+export function PageHeader({
+  eyebrow,
+  title,
+  description,
+  actions,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <motion.div
+      className="page-header"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+    >
+      <div className="page-header-copy">
+        <span className="eyebrow">{eyebrow}</span>
+        <h1>{title}</h1>
+        <p>{description}</p>
+      </div>
+      {actions ? <div className="page-actions">{actions}</div> : null}
+    </motion.div>
+  );
+}
+
+export function Panel({
+  title,
+  subtitle,
+  actions,
+  className = "",
+  children,
+}: PropsWithChildren<{
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  className?: string;
+}>) {
+  return (
+    <motion.section
+      className={cn("panel", className)}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.32, ease: "easeOut" }}
+    >
+      <div className="panel-head">
+        <div>
+          <h2>{title}</h2>
+          {subtitle ? <p>{subtitle}</p> : null}
+        </div>
+        {actions ? <div>{actions}</div> : null}
+      </div>
+      {children}
+    </motion.section>
+  );
+}
+
+export function MetricCard({
+  label,
+  value,
+  helper,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  helper: string;
+  tone?: "default" | "accent" | "warm";
+}) {
+  return (
+    <motion.div
+      className={cn("metric-card", tone === "accent" && "metric-card-accent", tone === "warm" && "metric-card-warm")}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+    >
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{helper}</small>
+    </motion.div>
+  );
+}
+
+export function StatusBadge({ status }: { status: string | null | undefined }) {
+  const normalized = String(status ?? "unknown").toLowerCase();
+  const labels: Record<string, string> = {
+    ready: "готово",
+    success: "успешно",
+    completed: "завершено",
+    active: "активна",
+    failed: "ошибка",
+    cancelled: "отменено",
+    scheduled: "запланировано",
+    queued: "в очереди",
+    pending: "ожидание",
+    running: "выполняется",
+    processing: "обработка",
+    unknown: "неизвестно",
+    idle: "неактивна",
+    raw: "сырые",
+  };
+  const className =
+    normalized === "ready" || normalized === "success" || normalized === "completed" || normalized === "active"
+      ? "status status-ok"
+      : normalized === "failed" || normalized === "cancelled"
+        ? "status status-danger"
+      : "status status-warn";
+
+  return <span className={className}>{labels[normalized] ?? String(status ?? "неизвестно")}</span>;
+}
+
+export function JsonPreview({ value }: { value: unknown }) {
+  return <pre className="json-preview">{JSON.stringify(value, null, 2)}</pre>;
+}
+
+export function ScheduleField({
+  value,
+  onChange,
+  hint = "Оставь пустым для немедленного старта. Если указать дату, backend создаст отложенную задачу.",
+}: {
+  value: string;
+  onChange: ChangeEventHandler<HTMLInputElement>;
+  hint?: string;
+}) {
+  return (
+    <label className="full-span">
+      <span>Запланировать на</span>
+      <input type="datetime-local" value={value} onChange={onChange} />
+      <FieldHint>{hint}</FieldHint>
+    </label>
+  );
+}
+
+export function FieldHint({ children, className = "" }: PropsWithChildren<{ className?: string }>) {
+  return <small className={cn("field-hint", className)}>{children}</small>;
+}
+
+export function ActionHint({ children }: PropsWithChildren) {
+  return <div className="action-hint">{children}</div>;
+}
+
+export function OperationResult({
+  title,
+  status,
+  items,
+  raw,
+}: {
+  title: string;
+  status?: string | null;
+  items: Array<{ label: string; value: ReactNode }>;
+  raw?: unknown;
+}) {
+  return (
+    <div className="result-card">
+      <div className="result-head">
+        <strong>{title}</strong>
+        {status ? <StatusBadge status={status} /> : null}
+      </div>
+      <div className="result-grid">
+        {items.map((item) => (
+          <div key={item.label} className="result-item">
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+          </div>
+        ))}
+      </div>
+      {raw ? (
+        <details className="result-raw">
+          <summary>Показать сырой ответ</summary>
+          <JsonPreview value={raw} />
+        </details>
+      ) : null}
+    </div>
+  );
+}
+
+export function FormMessage({
+  tone = "info",
+  children,
+}: PropsWithChildren<{
+  tone?: "info" | "error";
+}>) {
+  return <div className={cn("form-message", tone === "error" ? "form-message-error" : "form-message-info")}>{children}</div>;
+}
+
+export function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="empty-state">
+      <strong>{title}</strong>
+      <p>{description}</p>
+    </div>
+  );
+}
+
+export function KeyMetricRow({
+  label,
+  value,
+  variant = "number",
+}: {
+  label: string;
+  value: number | null;
+  variant?: "number" | "percent";
+}) {
+  return (
+    <div className="key-metric-row">
+      <span>{label}</span>
+      <strong>{variant === "percent" ? formatPercent(value) : formatNumber(value)}</strong>
+    </div>
+  );
+}
+
+export function ForecastChart({ records }: { records: ForecastRecord[] }) {
+  const metricKeys = Object.keys(records[0]?.values ?? {}).slice(0, 6);
+  const palette = ["#7dd3c7", "#f4a259", "#7cb4ff", "#f472b6", "#c084fc", "#34d399"];
+
+  if (!records.length || !metricKeys.length) {
+    return <EmptyState title="Нет рядов для графика" description="Сначала получите успешный прогноз с ненулевыми значениями." />;
+  }
+
+  const series = metricKeys.map((key, index) => {
+    const data = records.map((record) => ({
+      timestamp: formatDateTime(record.timestamp_utc),
+      value: record.values[key],
+    }));
+    const values = data.map((item) => item.value).filter((value) => Number.isFinite(value));
+    const latest = values.at(-1) ?? null;
+    const min = values.length ? Math.min(...values) : null;
+    const max = values.length ? Math.max(...values) : null;
+
+    return {
+      key,
+      color: palette[index % palette.length],
+      data,
+      latest,
+      min,
+      max,
+    };
+  });
+
+  return (
+    <div className="chart-stack">
+      <div className="chart-summary-grid">
+        {series.map((metric) => (
+          <div key={metric.key} className="chart-stat-card">
+            <span>{metric.key}</span>
+            <strong>{formatNumber(metric.latest)}</strong>
+            <small>
+              мин. {formatNumber(metric.min)} · макс. {formatNumber(metric.max)}
+            </small>
+          </div>
+        ))}
+      </div>
+      <div className="mini-chart-grid">
+        {series.map((metric) => (
+          <div key={metric.key} className="mini-chart-card">
+            <div className="mini-chart-head">
+              <div className="mini-chart-title">
+                <span className="chart-dot" style={{ backgroundColor: metric.color }} />
+                <strong>{metric.key}</strong>
+              </div>
+              <span>{formatNumber(metric.latest)}</span>
+            </div>
+            <ResponsiveContainer width="100%" height={184}>
+              <LineChart data={metric.data}>
+                <CartesianGrid stroke="rgba(191, 208, 214, 0.12)" vertical={false} />
+                <XAxis dataKey="timestamp" tick={{ fill: "#8fa6b0", fontSize: 11 }} minTickGap={24} />
+                <YAxis tick={{ fill: "#8fa6b0", fontSize: 11 }} width={44} tickFormatter={(value: number) => formatNumber(value)} />
+                <Tooltip
+                  formatter={(value) => formatNumber(typeof value === "number" ? value : null)}
+                  contentStyle={{
+                    borderRadius: 14,
+                    border: "1px solid rgba(143,166,176,0.18)",
+                    background: "rgba(15,23,29,0.96)",
+                    color: "#eef4f6",
+                    boxShadow: "0 20px 40px rgba(0,0,0,0.22)",
+                  }}
+                />
+                <Line type="monotone" dataKey="value" stroke={metric.color} strokeWidth={2.4} dot={false} activeDot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ))}
+      </div>
+      <div className="chart-caption">
+        <span>Метрик: {metricKeys.length}</span>
+        <span>Точек: {records.length}</span>
+      </div>
+    </div>
+  );
+}
+
+export function Table({
+  columns,
+  rows,
+}: {
+  columns: string[];
+  rows: ReactNode[][];
+}) {
+  return (
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
+            {columns.map((column) => (
+              <th key={column}>{column}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((cells, index) => (
+            <tr key={index}>
+              {cells.map((cell, cellIndex) => (
+                <td key={cellIndex}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function SmallMeta({
+  createdAt,
+  updatedLabel,
+}: {
+  createdAt: string | null | undefined;
+  updatedLabel?: string;
+}) {
+  return (
+    <div className="small-meta">
+      <span>{updatedLabel ?? "Обновлено"}:</span>
+      <strong>{formatFullDateTime(createdAt)}</strong>
+    </div>
+  );
+}
