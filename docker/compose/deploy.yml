@@ -1,0 +1,4 @@
+networks:
+  air_monitor_network:
+    name: ${AIR_MONITOR_NETWORK_NAME:-air-monitor-network}
+    external: true

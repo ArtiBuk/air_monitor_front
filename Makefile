@@ -1,0 +1,56 @@
+.DEFAULT_GOAL := help
+
+COMPOSE_PROJECT_NAME ?= air-monitor-front
+COMPOSE := docker compose -p $(COMPOSE_PROJECT_NAME) -f docker/compose/base.yml -f docker/compose/deploy.yml
+AIR_MONITOR_NETWORK_NAME ?= air-monitor-network
+BACKEND_UPSTREAM_HOST ?= air-monitor-web
+BACKEND_UPSTREAM_PORT ?= 8000
+FRONTEND_PORT ?= 80
+
+.PHONY: help network-create up down stop start restart build rebuild ps logs shell
+
+help:
+	@printf "Доступные команды:\n"
+	@printf "  make up        Поднять frontend-контур в фоне\n"
+	@printf "  make down      Остановить и удалить frontend-контейнер\n"
+	@printf "  make stop      Остановить контейнер без удаления\n"
+	@printf "  make start     Запустить ранее созданный контейнер\n"
+	@printf "  make restart   Перезапустить контейнер без пересборки\n"
+	@printf "  make build     Собрать frontend-образ\n"
+	@printf "  make rebuild   Полностью пересобрать frontend-образ без кэша\n"
+	@printf "  make ps        Показать состояние контейнера\n"
+	@printf "  make logs      Смотреть логи frontend\n"
+	@printf "  make shell     Открыть shell внутри frontend-контейнера\n"
+
+network-create:
+	@docker network inspect $(AIR_MONITOR_NETWORK_NAME) >/dev/null 2>&1 || docker network create $(AIR_MONITOR_NETWORK_NAME)
+
+up: network-create
+	AIR_MONITOR_NETWORK_NAME=$(AIR_MONITOR_NETWORK_NAME) BACKEND_UPSTREAM_HOST=$(BACKEND_UPSTREAM_HOST) BACKEND_UPSTREAM_PORT=$(BACKEND_UPSTREAM_PORT) FRONTEND_PORT=$(FRONTEND_PORT) $(COMPOSE) up -d
+
+down:
+	AIR_MONITOR_NETWORK_NAME=$(AIR_MONITOR_NETWORK_NAME) BACKEND_UPSTREAM_HOST=$(BACKEND_UPSTREAM_HOST) BACKEND_UPSTREAM_PORT=$(BACKEND_UPSTREAM_PORT) FRONTEND_PORT=$(FRONTEND_PORT) $(COMPOSE) down
+
+stop:
+	AIR_MONITOR_NETWORK_NAME=$(AIR_MONITOR_NETWORK_NAME) BACKEND_UPSTREAM_HOST=$(BACKEND_UPSTREAM_HOST) BACKEND_UPSTREAM_PORT=$(BACKEND_UPSTREAM_PORT) FRONTEND_PORT=$(FRONTEND_PORT) $(COMPOSE) stop
+
+start: network-create
+	AIR_MONITOR_NETWORK_NAME=$(AIR_MONITOR_NETWORK_NAME) BACKEND_UPSTREAM_HOST=$(BACKEND_UPSTREAM_HOST) BACKEND_UPSTREAM_PORT=$(BACKEND_UPSTREAM_PORT) FRONTEND_PORT=$(FRONTEND_PORT) $(COMPOSE) start
+
+restart:
+	AIR_MONITOR_NETWORK_NAME=$(AIR_MONITOR_NETWORK_NAME) BACKEND_UPSTREAM_HOST=$(BACKEND_UPSTREAM_HOST) BACKEND_UPSTREAM_PORT=$(BACKEND_UPSTREAM_PORT) FRONTEND_PORT=$(FRONTEND_PORT) $(COMPOSE) restart $(SERVICE)
+
+build: network-create
+	AIR_MONITOR_NETWORK_NAME=$(AIR_MONITOR_NETWORK_NAME) BACKEND_UPSTREAM_HOST=$(BACKEND_UPSTREAM_HOST) BACKEND_UPSTREAM_PORT=$(BACKEND_UPSTREAM_PORT) FRONTEND_PORT=$(FRONTEND_PORT) $(COMPOSE) build
+
+rebuild: network-create
+	AIR_MONITOR_NETWORK_NAME=$(AIR_MONITOR_NETWORK_NAME) BACKEND_UPSTREAM_HOST=$(BACKEND_UPSTREAM_HOST) BACKEND_UPSTREAM_PORT=$(BACKEND_UPSTREAM_PORT) FRONTEND_PORT=$(FRONTEND_PORT) $(COMPOSE) build --no-cache
+
+ps:
+	AIR_MONITOR_NETWORK_NAME=$(AIR_MONITOR_NETWORK_NAME) BACKEND_UPSTREAM_HOST=$(BACKEND_UPSTREAM_HOST) BACKEND_UPSTREAM_PORT=$(BACKEND_UPSTREAM_PORT) FRONTEND_PORT=$(FRONTEND_PORT) $(COMPOSE) ps
+
+logs:
+	AIR_MONITOR_NETWORK_NAME=$(AIR_MONITOR_NETWORK_NAME) BACKEND_UPSTREAM_HOST=$(BACKEND_UPSTREAM_HOST) BACKEND_UPSTREAM_PORT=$(BACKEND_UPSTREAM_PORT) FRONTEND_PORT=$(FRONTEND_PORT) $(COMPOSE) logs -f --tail=200 $(SERVICE)
+
+shell:
+	AIR_MONITOR_NETWORK_NAME=$(AIR_MONITOR_NETWORK_NAME) BACKEND_UPSTREAM_HOST=$(BACKEND_UPSTREAM_HOST) BACKEND_UPSTREAM_PORT=$(BACKEND_UPSTREAM_PORT) FRONTEND_PORT=$(FRONTEND_PORT) $(COMPOSE) exec frontend /bin/sh
