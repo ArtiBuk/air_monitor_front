@@ -24,7 +24,7 @@ export function ObservationsPage() {
     limit: 100,
   });
   const [collectForm, setCollectForm] = useState({
-    start: toDateTimeLocalValue(new Date(Date.now() - 24 * 60 * 60 * 1000)),
+    start: toDateTimeLocalValue(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
     finish: toDateTimeLocalValue(new Date()),
     interval: "Interval1H",
     window_hours: 1,
@@ -145,7 +145,7 @@ export function ObservationsPage() {
               value={collectForm.start}
               onChange={(event) => setCollectForm({ ...collectForm, start: event.target.value })}
             />
-            <FieldHint>Начало периода, за который backend пойдёт во внешние источники.</FieldHint>
+            <FieldHint>Начало периода, за который backend пойдёт во внешние источники. Для первого запуска лучше брать не 24-48 часов, а 5-7 суток истории.</FieldHint>
           </label>
           <label>
             <span>Финиш окна</span>
@@ -154,7 +154,7 @@ export function ObservationsPage() {
               value={collectForm.finish}
               onChange={(event) => setCollectForm({ ...collectForm, finish: event.target.value })}
             />
-            <FieldHint>Конец периода. Для первого прогона удобно брать последние 24-48 часов.</FieldHint>
+            <FieldHint>Конец периода. Для обучения модели с окном 72 ч и горизонтом 24 ч обычно нужно минимум 98-120 часовых точек.</FieldHint>
           </label>
           <label>
             <span>Размер окна, ч</span>
@@ -171,7 +171,7 @@ export function ObservationsPage() {
             onChange={(event) => setCollectForm({ ...collectForm, scheduled_for: event.target.value })}
           />
         </div>
-        <ActionHint>Сначала укажи период и шаг агрегации. Для немедленного результата используй синхронный запуск, для отложенного старта заполни дату планирования и отправь задачу в очередь.</ActionHint>
+        <ActionHint>Сначала укажи период и шаг агрегации. На свежем стенде сначала собери хотя бы 5-7 суток истории, иначе датасет с типичными параметрами 72/24 не соберётся.</ActionHint>
         {formMessage ? <FormMessage tone="error">{formMessage}</FormMessage> : null}
         <div className="button-row">
           <button type="button" className="primary-button" onClick={() => syncMutation.mutate(buildPayload())}>

@@ -1,4 +1,4 @@
-import { Activity, BarChart3, Database, FlaskConical, Gauge, LogOut, Radar, Waves } from "lucide-react";
+import { Activity, BarChart3, BookOpenText, Database, FlaskConical, Gauge, LogOut, Radar, Waves } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
@@ -36,6 +36,10 @@ export function AppShell() {
               <strong>{user?.full_name || user?.email}</strong>
               <small>{tasks.length} задач в фокусе</small>
             </div>
+            <a href="/air-monitor-user-guide.md" download="air-monitor-user-guide.md" className="ghost-button">
+              <BookOpenText size={16} />
+              <span>Инструкция</span>
+            </a>
             <button type="button" className="ghost-button" onClick={() => void logout()}>
               <LogOut size={16} />
               <span>Выйти</span>

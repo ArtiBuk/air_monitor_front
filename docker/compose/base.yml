@@ -1,0 +1,25 @@
+services:
+  frontend:
+    build:
+      context: ../..
+      dockerfile: docker/frontend/Dockerfile
+    container_name: air-monitor-frontend
+    hostname: air-monitor-frontend
+    restart: unless-stopped
+    environment:
+      BACKEND_UPSTREAM_HOST: ${BACKEND_UPSTREAM_HOST:-air-monitor-web}
+      BACKEND_UPSTREAM_PORT: ${BACKEND_UPSTREAM_PORT:-8000}
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - air_monitor_network
+
+networks:
+  air_monitor_network:
+    driver: bridge
