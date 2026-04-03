@@ -37,6 +37,10 @@ export function ForecastsPage() {
   });
 
   const modelsQuery = useQuery({ queryKey: ["forecasts", "models"], queryFn: () => api.listModels(20) });
+  const latestObservationQuery = useQuery({
+    queryKey: ["forecasts", "latest-observation"],
+    queryFn: () => api.listObservations({ limit: 1 }),
+  });
   const activeModelQuery = useQuery({ queryKey: ["forecasts", "active-model"], queryFn: () => queryOrNull(() => api.getActiveModel()) });
   const latestForecastQuery = useQuery({ queryKey: ["forecasts", "latest"], queryFn: () => queryOrNull(() => api.getLatestForecast()) });
   const forecastsQuery = useQuery({ queryKey: ["forecasts"], queryFn: () => api.listForecasts(12) });
@@ -70,6 +74,15 @@ export function ForecastsPage() {
           },
     );
   }, [activeModelQuery.data]);
+
+  const forecastableModels = (modelsQuery.data ?? []).filter((model) => model.status === "ready");
+  const selectedForecast = forecastDetailQuery.data ?? null;
+  const selectedForecastLastTimestamp = selectedForecast?.records.at(-1)?.timestamp_utc ?? null;
+  const latestObservationTimestamp = latestObservationQuery.data?.[0]?.observed_at_utc ?? null;
+  const evaluationHasActuals =
+    Boolean(selectedForecastLastTimestamp) &&
+    Boolean(latestObservationTimestamp) &&
+    new Date(latestObservationTimestamp as string).getTime() >= new Date(selectedForecastLastTimestamp as string).getTime();
 
   useEffect(() => {
     const generatedFrom = latestForecastQuery.data?.generated_from_timestamp_utc;
@@ -198,6 +211,8 @@ export function ForecastsPage() {
 
   const selectedEvaluation = (evaluationsQuery.data ?? []).find((item) => item.forecast_run === selectedForecastId);
   const evaluationMetrics = asObject(selectedEvaluation?.metrics);
+  const isCompletedEvaluation = selectedEvaluation?.status === "completed";
+  const isFailedEvaluation = selectedEvaluation?.status === "failed";
 
   function handleBacktest() {
     if (!form.generated_from_timestamp_utc) {
@@ -223,13 +238,13 @@ export function ForecastsPage() {
               <span>Версия модели</span>
               <select value={form.model_version_id} onChange={(event) => setForm({ ...form, model_version_id: event.target.value })}>
                 <option value="">Активная / по умолчанию</option>
-                {(modelsQuery.data ?? []).map((model) => (
+                {forecastableModels.map((model) => (
                   <option key={model.id} value={model.id}>
                     {model.name} · {model.status} · {model.id.slice(0, 8)}
                   </option>
                 ))}
               </select>
-              <FieldHint>Если backend уже знает активную модель, она подставится автоматически. При желании можно выбрать другую версию вручную.</FieldHint>
+              <FieldHint>Если backend уже знает активную модель, она подставится автоматически. В списке показываются только модели со статусом `ready`, потому что `training` и `failed` версии нельзя использовать для прогноза.</FieldHint>
             </label>
             <label>
               <span>Входное окно, ч</span>
@@ -289,7 +304,7 @@ export function ForecastsPage() {
                 <span className="pill">{forecastDetailQuery.data.id.slice(0, 8)}</span>
               </div>
               <ForecastChart records={forecastDetailQuery.data.records} />
-              {selectedEvaluation ? (
+              {isCompletedEvaluation ? (
                 <div className="detail-grid">
                   <div className="mini-card">
                     <span>Покрытие</span>
@@ -305,9 +320,29 @@ export function ForecastsPage() {
                   </div>
                 </div>
               ) : (
-                <button type="button" className="primary-button" onClick={() => evaluateMutation.mutate(selectedForecastId)}>
-                  Оценить по факту
-                </button>
+                <>
+                  {isFailedEvaluation ? (
+                    <FormMessage tone="error">
+                      {selectedEvaluation?.error_message || "Прошлая попытка оценки завершилась ошибкой."}
+                    </FormMessage>
+                  ) : null}
+                  {!evaluationHasActuals ? (
+                    <FieldHint>
+                      Оценка по факту станет доступна, когда наблюдения дойдут хотя бы до{" "}
+                      {selectedForecastLastTimestamp ? formatDateTime(selectedForecastLastTimestamp) : "конца горизонта прогноза"}.
+                      {" "}Сейчас последнее доступное наблюдение:{" "}
+                      {latestObservationTimestamp ? formatDateTime(latestObservationTimestamp) : "ещё не загружено"}.
+                    </FieldHint>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() => evaluateMutation.mutate(selectedForecastId)}
+                    disabled={!evaluationHasActuals}
+                  >
+                    {isFailedEvaluation ? "Повторить оценку по факту" : "Оценить по факту"}
+                  </button>
+                </>
               )}
             </div>
           ) : (
