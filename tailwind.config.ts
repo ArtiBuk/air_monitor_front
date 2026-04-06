@@ -2,6 +2,23 @@ import type { Config } from "tailwindcss";
 
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  safelist: [
+    "severity-normal",
+    "severity-elevated",
+    "severity-critical",
+    "severity-unknown",
+    "severity-dot-normal",
+    "severity-dot-elevated",
+    "severity-dot-critical",
+    "severity-dot-unknown",
+    "reading-normal",
+    "reading-elevated",
+    "reading-critical",
+    "reading-unknown",
+    "chart-stat-card-normal",
+    "chart-stat-card-elevated",
+    "chart-stat-card-critical",
+  ],
   theme: {
     extend: {
       colors: {

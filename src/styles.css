@@ -51,7 +51,7 @@
   }
 
   .topbar {
-    @apply sticky top-0 z-20 px-4 pt-4 backdrop-blur;
+    @apply px-4 pt-4;
   }
 
   .topbar-inner {
@@ -94,11 +94,11 @@
   }
 
   .shell-inner {
-    @apply mx-auto grid max-w-[1380px] gap-4 px-4 pb-8 pt-4 xl:grid-cols-[250px_minmax(0,1fr)];
+    @apply mx-auto grid max-w-[1380px] gap-4 px-4 pb-8 pt-3 xl:grid-cols-[250px_minmax(0,1fr)];
   }
 
   .sidebar {
-    @apply h-fit rounded-[30px] border border-white/10 bg-ink-900/70 p-4 shadow-panel xl:sticky xl:top-28;
+    @apply h-fit self-start rounded-[30px] border border-white/10 bg-ink-900/70 p-4 shadow-panel;
   }
 
   .sidebar-title {
@@ -114,7 +114,7 @@
   }
 
   .nav-link-active {
-    @apply border-mist-500/25 bg-gradient-to-r from-mist-500/15 to-transparent text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)];
+    @apply border-mist-500/20 bg-mist-500/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)];
   }
 
   .sidebar-foot {
@@ -186,6 +186,44 @@
     @apply bg-gradient-to-br from-amber-500/15 via-ink-900/80 to-ink-900/80;
   }
 
+  .step-card span {
+    @apply text-xs font-bold uppercase tracking-[0.14em] text-amber-200/80;
+  }
+
+  .preset-grid,
+  .step-grid,
+  .summary-strip {
+    @apply grid gap-3;
+  }
+
+  .summary-strip {
+    @apply sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .summary-strip {
+    @apply lg:grid-cols-2 2xl:grid-cols-4;
+  }
+
+  .preset-grid {
+    @apply md:grid-cols-3;
+  }
+
+  .step-grid {
+    @apply md:grid-cols-3;
+  }
+
+  .step-card {
+    @apply rounded-[26px] border border-white/10 bg-black/10 p-4;
+  }
+
+  .step-card strong {
+    @apply mt-2 block text-lg font-semibold text-white;
+  }
+
+  .step-card p {
+    @apply mt-2 text-sm leading-6 text-ink-400;
+  }
+
   .panel {
     @apply rounded-[30px] border border-white/10 bg-ink-900/75 p-5 shadow-panel backdrop-blur-sm;
   }
@@ -240,6 +278,99 @@
   .key-metric-row strong,
   .mini-card strong {
     @apply text-lg font-semibold text-white;
+  }
+
+  .summary-strip .mini-card strong {
+    @apply text-base leading-7;
+  }
+
+  .aqi-strip {
+    @apply grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)];
+  }
+
+  .aqi-main-card,
+  .aqi-side-card {
+    @apply rounded-[28px] border border-white/10 bg-ink-900/75 p-5 shadow-panel;
+  }
+
+  .aqi-main-card-normal {
+    @apply border-emerald-300/24 bg-[linear-gradient(180deg,rgba(14,33,28,0.96),rgba(14,19,24,0.96))];
+  }
+
+  .aqi-main-card-elevated {
+    @apply border-amber-300/24 bg-[linear-gradient(180deg,rgba(36,30,14,0.96),rgba(14,19,24,0.96))];
+  }
+
+  .aqi-main-card-critical {
+    @apply border-rose-300/24 bg-[linear-gradient(180deg,rgba(38,17,21,0.96),rgba(14,19,24,0.96))];
+  }
+
+  .aqi-main-card-unknown {
+    @apply border-white/10;
+  }
+
+  .aqi-main-head {
+    @apply flex items-start justify-between gap-3;
+  }
+
+  .aqi-main-head strong {
+    @apply mt-3 block text-2xl font-semibold tracking-[-0.03em] text-white;
+  }
+
+  .aqi-main-value {
+    @apply mt-6 text-5xl font-extrabold tracking-[-0.06em] text-white;
+  }
+
+  .aqi-side-grid {
+    @apply grid gap-3 md:grid-cols-2;
+  }
+
+  .aqi-side-card span {
+    @apply text-xs uppercase tracking-[0.12em] text-ink-500;
+  }
+
+  .aqi-side-card strong {
+    @apply mt-2 block text-base font-semibold leading-7 text-white;
+  }
+
+  .severity-badge {
+    @apply inline-flex min-h-7 items-center gap-2 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em];
+  }
+
+  .severity-dot {
+    @apply h-2 w-2 rounded-full;
+  }
+
+  .severity-normal {
+    @apply border-emerald-400/30 bg-emerald-400/[0.14] text-emerald-50;
+  }
+
+  .severity-elevated {
+    @apply border-amber-300/30 bg-amber-300/[0.16] text-amber-50;
+  }
+
+  .severity-critical {
+    @apply border-rose-400/30 bg-rose-400/[0.14] text-rose-50;
+  }
+
+  .severity-unknown {
+    @apply border-white/10 bg-white/[0.03] text-ink-300;
+  }
+
+  .severity-dot-normal {
+    @apply bg-emerald-300;
+  }
+
+  .severity-dot-elevated {
+    @apply bg-amber-300;
+  }
+
+  .severity-dot-critical {
+    @apply bg-rose-300;
+  }
+
+  .severity-dot-unknown {
+    @apply bg-ink-400;
   }
 
   .mini-card {
@@ -375,11 +506,23 @@
   }
 
   .chart-summary-grid {
-    @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-3;
+    @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-4;
   }
 
   .chart-stat-card {
     @apply rounded-3xl border border-white/10 bg-white/[0.03] p-4;
+  }
+
+  .chart-stat-card-normal {
+    @apply border-emerald-400/20 bg-emerald-400/[0.08];
+  }
+
+  .chart-stat-card-elevated {
+    @apply border-amber-300/20 bg-amber-300/[0.09];
+  }
+
+  .chart-stat-card-critical {
+    @apply border-rose-400/20 bg-rose-400/[0.09];
   }
 
   .chart-stat-card span {
@@ -392,6 +535,10 @@
 
   .chart-stat-card small {
     @apply mt-1 block text-sm text-ink-400;
+  }
+
+  .chart-stat-foot {
+    @apply mt-3;
   }
 
   .mini-chart-grid {
@@ -408,6 +555,10 @@
 
   .mini-chart-head > span {
     @apply text-sm font-medium text-ink-300;
+  }
+
+  .mini-chart-meta {
+    @apply flex flex-wrap items-center justify-end gap-2;
   }
 
   .mini-chart-title {
@@ -458,8 +609,40 @@
     @apply cursor-pointer text-sm text-ink-400 transition duration-150 hover:text-ink-200;
   }
 
+  .details-card {
+    @apply grid gap-4 rounded-[28px] border border-white/10 bg-black/10 p-4;
+  }
+
+  .details-card summary {
+    @apply cursor-pointer text-sm font-semibold text-ink-200 transition duration-150 hover:text-white;
+  }
+
   .json-preview {
     @apply overflow-auto rounded-3xl border border-white/10 bg-black/20 p-4 font-mono text-xs text-ink-300;
+  }
+
+  .reading-cell {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .reading-pill {
+    @apply inline-flex min-h-8 items-center rounded-full border px-3 py-1 text-sm font-medium;
+  }
+
+  .reading-normal {
+    @apply border-emerald-400/30 bg-emerald-400/[0.14] text-emerald-50;
+  }
+
+  .reading-elevated {
+    @apply border-amber-300/30 bg-amber-300/[0.16] text-amber-50;
+  }
+
+  .reading-critical {
+    @apply border-rose-400/30 bg-rose-400/[0.14] text-rose-50;
+  }
+
+  .reading-unknown {
+    @apply border-white/10 bg-white/[0.03] text-ink-200;
   }
 
   .empty-state {

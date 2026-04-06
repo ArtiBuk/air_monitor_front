@@ -146,9 +146,9 @@ export function DatasetsPage() {
               rows={3}
               value={form.feature_columns}
               onChange={(event) => setForm({ ...form, feature_columns: event.target.value })}
-              placeholder="mycityair_aqi_mean, plume_so2_mean, ..."
+              placeholder="plume_pm25, plume_so2, plume_no2, ..."
             />
-            <FieldHint>Список признаков через запятую. Если найден прошлый срез, здесь подставляется его конфигурация.</FieldHint>
+            <FieldHint>Список признаков через запятую в backend-id формате. Например: `plume_pm25`, `plume_so2`, `hour_sin`.</FieldHint>
           </label>
           <label className="full-span">
             <span>Целевые метрики</span>
@@ -156,9 +156,9 @@ export function DatasetsPage() {
               rows={2}
               value={form.target_columns}
               onChange={(event) => setForm({ ...form, target_columns: event.target.value })}
-              placeholder="mycityair_aqi_mean, plume_so2_mean"
+              placeholder="mycityair_aqi_mean, plume_pm25, plume_so2"
             />
-            <FieldHint>Что именно модель должна предсказывать. При наличии прошлого среза фронт подставит последние целевые метрики сам.</FieldHint>
+            <FieldHint>Что именно модель должна предсказывать. Здесь можно явно оставить `mycityair_aqi_mean`, чтобы модель отдавала прогнозный AQI.</FieldHint>
           </label>
           <ScheduleField
             value={form.scheduled_for}

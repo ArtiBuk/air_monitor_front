@@ -16,6 +16,7 @@ import type {
   MessageResponse,
   ModelLeaderboardEntry,
   ModelVersion,
+  MonitoringOverview,
   Observation,
   ObservationSyncResult,
   RegisterPayload,
@@ -147,6 +148,7 @@ export const api = {
     request<AuthSession>("/api/auth/register", { method: "POST", body: payload }, false),
   logout: () => request<MessageResponse>("/api/auth/logout", { method: "POST", body: {} }, false),
   me: () => request<User>("/api/users/me"),
+  getMonitoringOverview: () => request<MonitoringOverview>("/api/monitoring/overview"),
   listObservations: (params: { metric?: string; source?: string; limit?: number }) =>
     request<Observation[]>(withQuery("/api/monitoring/observations", params)),
   collectObservations: (payload: CollectObservationsPayload) =>

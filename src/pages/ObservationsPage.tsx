@@ -1,9 +1,18 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { ActionHint, FieldHint, FormMessage, OperationResult, PageHeader, Panel, ScheduleField, StatusBadge, Table } from "../components/ui";
+import { ActionHint, FieldHint, FormMessage, OperationResult, PageHeader, Panel, ScheduleField, SeverityBadge, StatusBadge, Table } from "../components/ui";
 import { api, getApiErrorMessage } from "../lib/api";
-import { formatDateTime, formatNumber, fromDateTimeLocalValue, humanizeOperation, toDateTimeLocalValue } from "../lib/format";
+import {
+  formatDateTime,
+  formatMetricName,
+  formatNumber,
+  formatSourceName,
+  fromDateTimeLocalValue,
+  getMetricSeverity,
+  humanizeOperation,
+  toDateTimeLocalValue,
+} from "../lib/format";
 import { useTaskTracker } from "../hooks/useTaskTracker";
 
 type ResultState = {
@@ -189,10 +198,13 @@ export function ObservationsPage() {
           columns={["Время", "Источник", "Станция", "Метрика", "Значение", "Ед.", "Тип"]}
           rows={(observationsQuery.data ?? []).map((item) => [
             formatDateTime(item.observed_at_utc),
-            item.source,
+            formatSourceName(item.source),
             item.station_name || item.station_id || "-",
-            item.metric,
-            formatNumber(item.value),
+            formatMetricName(item.metric),
+            <div className="reading-cell">
+              <span className={`reading-pill reading-${getMetricSeverity(item.metric, item.value)}`}>{formatNumber(item.value)}</span>
+              <SeverityBadge severity={getMetricSeverity(item.metric, item.value)} />
+            </div>,
             item.unit || "-",
             <StatusBadge status={item.source_kind || "сырые"} />,
           ])}

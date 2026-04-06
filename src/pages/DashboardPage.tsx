@@ -1,8 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { ApiError, api } from "../lib/api";
-import { asObject, formatNumber, getNestedMetric, joinList } from "../lib/format";
-import { EmptyState, ForecastChart, KeyMetricRow, MetricCard, PageHeader, Panel, SmallMeta, StatusBadge, Table } from "../components/ui";
+import {
+  asObject,
+  formatDateTime,
+  formatIsoDateTime,
+  formatMetricList,
+  formatMetricName,
+  formatNumber,
+  formatSourceList,
+  getMetricSeverity,
+  getMetricSeverityLabel,
+  getMetricSeverityRank,
+  getNestedMetric,
+} from "../lib/format";
+import { EmptyState, ForecastChart, KeyMetricRow, MetricCard, PageHeader, Panel, SeverityBadge, SmallMeta, StatusBadge, Table } from "../components/ui";
 
 async function queryOrNull<T>(loader: () => Promise<T>) {
   try {
@@ -16,6 +28,7 @@ async function queryOrNull<T>(loader: () => Promise<T>) {
 }
 
 export function DashboardPage() {
+  const overviewQuery = useQuery({ queryKey: ["overview", "stats"], queryFn: () => api.getMonitoringOverview() });
   const observationsQuery = useQuery({ queryKey: ["overview", "observations"], queryFn: () => api.listObservations({ limit: 8 }) });
   const datasetsQuery = useQuery({ queryKey: ["overview", "datasets"], queryFn: () => api.listDatasets(6) });
   const modelsQuery = useQuery({ queryKey: ["overview", "models"], queryFn: () => api.listModels(6) });
@@ -29,6 +42,26 @@ export function DashboardPage() {
   const activeModelMetrics = asObject(activeModelQuery.data?.metrics);
   const latestForecast = latestForecastQuery.data;
   const leaderboard = leaderboardQuery.data ?? [];
+  const counts = overviewQuery.data?.counts;
+  const collectionConfig = overviewQuery.data?.automatic_collection;
+  const latestForecastAqi = latestForecast?.records.at(-1)?.values?.mycityair_aqi_mean ?? null;
+  const predictsAqi = activeModelQuery.data?.target_names.includes("mycityair_aqi_mean") ?? false;
+  const latestForecastTimestamp = latestForecast?.records.at(-1)?.timestamp_utc ?? null;
+  const latestForecastValues = latestForecast?.records.at(-1)?.values ?? {};
+  const latestAqiSeverity = getMetricSeverity("mycityair_aqi_mean", latestForecastAqi);
+  const dominantMetricEntry = Object.entries(latestForecastValues)
+    .map(([metric, value]) => ({
+      metric,
+      value,
+      severity: getMetricSeverity(metric, value),
+      rank: getMetricSeverityRank(getMetricSeverity(metric, value)),
+    }))
+    .sort((left, right) => {
+      if (left.rank !== right.rank) {
+        return right.rank - left.rank;
+      }
+      return (right.value ?? 0) - (left.value ?? 0);
+    })[0];
 
   return (
     <div className="page-stack">
@@ -39,12 +72,47 @@ export function DashboardPage() {
       />
 
       <section className="metrics-grid">
-        <MetricCard label="Наблюдения" value={String(observationsQuery.data?.length ?? 0)} helper="последние записи по API" tone="accent" />
-        <MetricCard label="Датасеты" value={String(datasetsQuery.data?.length ?? 0)} helper="доступные срезы" />
-        <MetricCard label="Модели" value={String(modelsQuery.data?.length ?? 0)} helper="версии модели" />
-        <MetricCard label="Прогнозы" value={String(forecastsQuery.data?.length ?? 0)} helper="запуски прогноза" tone="warm" />
-        <MetricCard label="Эксперименты" value={String(experimentsQuery.data?.length ?? 0)} helper="запуски исследования" />
-        <MetricCard label="Серии" value={String(seriesQuery.data?.length ?? 0)} helper="исследовательские кампании" />
+        <MetricCard label="Наблюдения" value={formatNumber(counts?.observations ?? 0, "0")} helper="всего в базе" tone="accent" />
+        <MetricCard label="Датасеты" value={formatNumber(counts?.datasets ?? 0, "0")} helper="собранные срезы" />
+        <MetricCard label="Модели" value={formatNumber(counts?.models ?? 0, "0")} helper="версии модели" />
+        <MetricCard label="Прогнозы" value={formatNumber(counts?.forecasts ?? 0, "0")} helper="запуски прогноза" tone="warm" />
+        <MetricCard label="Эксперименты" value={formatNumber(counts?.experiments ?? 0, "0")} helper="запуски исследования" />
+        <MetricCard label="Серии" value={formatNumber(counts?.series ?? 0, "0")} helper="исследовательские кампании" />
+      </section>
+
+      <section className="aqi-strip">
+        <div className={`aqi-main-card aqi-main-card-${latestAqiSeverity}`}>
+          <div className="aqi-main-head">
+            <div>
+              <span className="eyebrow">Ключевой показатель</span>
+              <strong>AQI</strong>
+            </div>
+            <SeverityBadge severity={latestAqiSeverity} />
+          </div>
+          <div className="aqi-main-value">{formatNumber(latestForecastAqi)}</div>
+          <p className="panel-note">Итоговый индекс качества воздуха по последней точке прогноза.</p>
+        </div>
+
+        <div className="aqi-side-grid">
+          <div className="aqi-side-card">
+            <span>Категория</span>
+            <strong>{getMetricSeverityLabel(latestAqiSeverity)}</strong>
+          </div>
+          <div className="aqi-side-card">
+            <span>Последняя точка прогноза</span>
+            <strong>{formatIsoDateTime(latestForecastTimestamp)}</strong>
+          </div>
+          <div className="aqi-side-card">
+            <span>Доминирующий риск</span>
+            <strong>
+              {dominantMetricEntry ? `${formatMetricName(dominantMetricEntry.metric)} · ${getMetricSeverityLabel(dominantMetricEntry.severity)}` : "-"}
+            </strong>
+          </div>
+          <div className="aqi-side-card">
+            <span>Статус модели</span>
+            <strong>{predictsAqi ? "AQI входит в цели модели" : "AQI не входит в цели модели"}</strong>
+          </div>
+        </div>
       </section>
 
       <div className="dashboard-grid">
@@ -72,13 +140,29 @@ export function DashboardPage() {
               <KeyMetricRow label="Общая RMSE" value={getNestedMetric(activeModelMetrics, "summary", "overall_rmse")} />
               <KeyMetricRow label="Общая MAE" value={getNestedMetric(activeModelMetrics, "summary", "overall_mae")} />
               <KeyMetricRow label="Макро MAPE" value={getNestedMetric(activeModelMetrics, "summary", "macro_mape")} />
-              <p className="panel-note">Цели: {joinList(activeModelQuery.data.target_names)}</p>
+              <p className="panel-note">Цели: {formatMetricList(activeModelQuery.data.target_names)}</p>
             </div>
           ) : (
             <EmptyState title="Активная модель отсутствует" description="После первого успешного обучения backend автоматически выставит готовую модель активной." />
           )}
         </Panel>
       </div>
+
+      <Panel
+        title="Автосбор наблюдений"
+        subtitle="Hourly-задача Celery теперь показывает реальное окно, из которого она каждый раз забирает данные."
+      >
+        <Table
+          columns={["Параметр", "Значение"]}
+          rows={[
+            ["Запуск по расписанию", `каждый час в :${String(collectionConfig?.schedule_minute ?? 5).padStart(2, "0")}`],
+            ["Запрашиваемое окно", `${collectionConfig?.lookback_hours ?? 48} ч назад от текущего момента`],
+            ["Интервал агрегации", collectionConfig?.interval ?? "Interval1H"],
+            ["Размер окна", `${collectionConfig?.window_hours ?? 1} ч`],
+            ["Источники", formatSourceList(collectionConfig?.enabled_sources)],
+          ]}
+        />
+      </Panel>
 
       <Panel title="Лидерборд моделей" subtitle="Сводная оценка по метрикам ретропроверки.">
         {leaderboard.length ? (
@@ -102,12 +186,12 @@ export function DashboardPage() {
         <Table
           columns={["Тип", "Количество", "Последний статус / комментарий"]}
           rows={[
-            ["Наблюдения", String(observationsQuery.data?.length ?? 0), observationsQuery.data?.[0]?.metric ?? "-"],
-            ["Срезы датасета", String(datasetsQuery.data?.length ?? 0), datasetsQuery.data?.[0]?.id ?? "-"],
-            ["Версии моделей", String(modelsQuery.data?.length ?? 0), modelsQuery.data?.[0]?.status ?? "-"],
-            ["Запуски прогноза", String(forecastsQuery.data?.length ?? 0), forecastsQuery.data?.[0]?.status ?? "-"],
-            ["Запуски эксперимента", String(experimentsQuery.data?.length ?? 0), experimentsQuery.data?.[0]?.status ?? "-"],
-            ["Серии экспериментов", String(seriesQuery.data?.length ?? 0), seriesQuery.data?.[0]?.name ?? "-"],
+            ["Наблюдения", formatNumber(counts?.observations ?? 0, "0"), formatMetricName(observationsQuery.data?.[0]?.metric)],
+            ["Срезы датасета", formatNumber(counts?.datasets ?? 0, "0"), datasetsQuery.data?.[0]?.id ?? "-"],
+            ["Версии моделей", formatNumber(counts?.models ?? 0, "0"), modelsQuery.data?.[0]?.status ?? "-"],
+            ["Запуски прогноза", formatNumber(counts?.forecasts ?? 0, "0"), formatDateTime(forecastsQuery.data?.[0]?.created_at)],
+            ["Запуски эксперимента", formatNumber(counts?.experiments ?? 0, "0"), experimentsQuery.data?.[0]?.status ?? "-"],
+            ["Серии экспериментов", formatNumber(counts?.series ?? 0, "0"), seriesQuery.data?.[0]?.name ?? "-"],
           ]}
         />
       </Panel>
