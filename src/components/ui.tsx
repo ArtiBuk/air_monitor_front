@@ -3,7 +3,15 @@ import { motion } from "framer-motion";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { cn } from "../lib/cn";
-import { formatDateTime, formatFullDateTime, formatNumber, formatPercent } from "../lib/format";
+import {
+  formatDateTime,
+  formatFullDateTime,
+  formatMetricName,
+  formatNumber,
+  formatPercent,
+  getMetricSeverity,
+  type MetricSeverity,
+} from "../lib/format";
 import type { ForecastRecord } from "../types/api";
 
 export function PageHeader({
@@ -118,6 +126,22 @@ export function StatusBadge({ status }: { status: string | null | undefined }) {
   return <span className={className}>{labels[normalized] ?? String(status ?? "неизвестно")}</span>;
 }
 
+export function SeverityBadge({ severity }: { severity: MetricSeverity }) {
+  const labels: Record<MetricSeverity, string> = {
+    normal: "Норма",
+    elevated: "Выше нормы",
+    critical: "Критический",
+    unknown: "Без оценки",
+  };
+
+  return (
+    <span className={cn("severity-badge", `severity-${severity}`)}>
+      <span className={cn("severity-dot", `severity-dot-${severity}`)} aria-hidden />
+      {labels[severity]}
+    </span>
+  );
+}
+
 export function JsonPreview({ value }: { value: unknown }) {
   return <pre className="json-preview">{JSON.stringify(value, null, 2)}</pre>;
 }
@@ -219,8 +243,17 @@ export function KeyMetricRow({
 }
 
 export function ForecastChart({ records }: { records: ForecastRecord[] }) {
-  const metricKeys = Object.keys(records[0]?.values ?? {}).slice(0, 6);
-  const palette = ["#7dd3c7", "#f4a259", "#7cb4ff", "#f472b6", "#c084fc", "#34d399"];
+  const metricKeys = Object.keys(records[0]?.values ?? {})
+    .sort((left, right) => {
+      const leftPriority = left === "mycityair_aqi_mean" ? 0 : 1;
+      const rightPriority = right === "mycityair_aqi_mean" ? 0 : 1;
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+      return left.localeCompare(right);
+    })
+    .slice(0, 8);
+  const palette = ["#f4a259", "#7dd3c7", "#7cb4ff", "#f472b6", "#c084fc", "#34d399", "#f59e0b", "#60a5fa"];
 
   if (!records.length || !metricKeys.length) {
     return <EmptyState title="Нет рядов для графика" description="Сначала получите успешный прогноз с ненулевыми значениями." />;
@@ -249,25 +282,35 @@ export function ForecastChart({ records }: { records: ForecastRecord[] }) {
   return (
     <div className="chart-stack">
       <div className="chart-summary-grid">
-        {series.map((metric) => (
-          <div key={metric.key} className="chart-stat-card">
-            <span>{metric.key}</span>
+        {series.map((metric) => {
+          const severity = getMetricSeverity(metric.key, metric.latest);
+          return (
+          <div key={metric.key} className={cn("chart-stat-card", `chart-stat-card-${severity}`)}>
+            <span>{formatMetricName(metric.key, metric.key)}</span>
             <strong>{formatNumber(metric.latest)}</strong>
             <small>
               мин. {formatNumber(metric.min)} · макс. {formatNumber(metric.max)}
             </small>
+            <div className="chart-stat-foot">
+              <SeverityBadge severity={severity} />
+            </div>
           </div>
-        ))}
+        )})}
       </div>
       <div className="mini-chart-grid">
-        {series.map((metric) => (
+        {series.map((metric) => {
+          const severity = getMetricSeverity(metric.key, metric.latest);
+          return (
           <div key={metric.key} className="mini-chart-card">
             <div className="mini-chart-head">
               <div className="mini-chart-title">
                 <span className="chart-dot" style={{ backgroundColor: metric.color }} />
-                <strong>{metric.key}</strong>
+                <strong>{formatMetricName(metric.key, metric.key)}</strong>
               </div>
-              <span>{formatNumber(metric.latest)}</span>
+              <div className="mini-chart-meta">
+                <span>{formatNumber(metric.latest)}</span>
+                <SeverityBadge severity={severity} />
+              </div>
             </div>
             <ResponsiveContainer width="100%" height={184}>
               <LineChart data={metric.data}>
@@ -288,7 +331,7 @@ export function ForecastChart({ records }: { records: ForecastRecord[] }) {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        ))}
+        )})}
       </div>
       <div className="chart-caption">
         <span>Метрик: {metricKeys.length}</span>

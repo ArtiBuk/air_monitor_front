@@ -68,6 +68,29 @@ export interface ObservationSyncResult {
   db_updated_count: number;
 }
 
+export interface MonitoringOverviewCounts {
+  observations: number;
+  datasets: number;
+  models: number;
+  forecasts: number;
+  experiments: number;
+  series: number;
+  scheduled_tasks: number;
+}
+
+export interface AutomaticCollectionConfig {
+  lookback_hours: number;
+  interval: string;
+  window_hours: number;
+  schedule_minute: number;
+  enabled_sources: string[];
+}
+
+export interface MonitoringOverview {
+  counts: MonitoringOverviewCounts;
+  automatic_collection: AutomaticCollectionConfig;
+}
+
 export interface DatasetSnapshot {
   id: string;
   input_len_hours: number;

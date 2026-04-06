@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ActionHint, EmptyState, FieldHint, FormMessage, KeyMetricRow, OperationResult, PageHeader, Panel, ScheduleField, StatusBadge, Table } from "../components/ui";
 import { useTaskTracker } from "../hooks/useTaskTracker";
 import { ApiError, api, getApiErrorMessage } from "../lib/api";
-import { asObject, formatDateTime, formatNumber, fromDateTimeLocalValue, getNestedMetric, humanizeOperation, joinList } from "../lib/format";
+import { asObject, formatDateTime, formatMetricList, formatNumber, fromDateTimeLocalValue, getNestedMetric, humanizeOperation } from "../lib/format";
 
 async function queryOrNull<T>(loader: () => Promise<T>) {
   try {
@@ -75,7 +75,7 @@ export function ModelsPage() {
         items: [
           { label: "Модель", value: result.name },
           { label: "Датасет", value: result.dataset?.slice(0, 8) ?? "-" },
-          { label: "Целевые метрики", value: joinList(result.target_names) },
+          { label: "Целевые метрики", value: formatMetricList(result.target_names) },
           { label: "Ошибка RMSE", value: formatNumber(getNestedMetric(metrics, "summary", "overall_rmse")) },
         ],
         raw: result,
@@ -216,6 +216,7 @@ export function ModelsPage() {
               <KeyMetricRow label="Общая RMSE" value={getNestedMetric(activeMetrics, "summary", "overall_rmse")} />
               <KeyMetricRow label="Общая MAE" value={getNestedMetric(activeMetrics, "summary", "overall_mae")} />
               <KeyMetricRow label="Макро MAPE" value={getNestedMetric(activeMetrics, "summary", "macro_mape")} />
+              <p className="panel-note">Цели: {formatMetricList(activeModelQuery.data.target_names)}</p>
             </div>
           ) : (
             <EmptyState title="Нет активной модели" description="После первого обучения этот блок станет основным источником для текущей базовой модели." />

@@ -4,7 +4,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ActionHint, EmptyState, FieldHint, FormMessage, OperationResult, PageHeader, Panel, ScheduleField, StatusBadge, Table } from "../components/ui";
 import { useTaskTracker } from "../hooks/useTaskTracker";
 import { api, getApiErrorMessage } from "../lib/api";
-import { asObject, formatDateTime, formatNumber, getNestedMetric, humanizeOperation, parseCsvList, fromDateTimeLocalValue, toDateTimeLocalValue } from "../lib/format";
+import {
+  asObject,
+  formatDateTime,
+  formatMetricList,
+  formatNumber,
+  getNestedMetric,
+  humanizeOperation,
+  parseCsvList,
+  fromDateTimeLocalValue,
+  toDateTimeLocalValue,
+} from "../lib/format";
+
+type ExperimentPreset = "quick" | "balanced" | "research";
 
 export function ExperimentsPage() {
   const queryClient = useQueryClient();
@@ -24,6 +36,8 @@ export function ExperimentsPage() {
   const [formMessage, setFormMessage] = useState("");
   const [selectedSeriesId, setSelectedSeriesId] = useState("");
   const [didAutofillConfig, setDidAutofillConfig] = useState(false);
+  const [preset, setPreset] = useState<ExperimentPreset>("balanced");
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [seriesForm, setSeriesForm] = useState({
     name: "",
     description: "",
@@ -77,6 +91,42 @@ export function ExperimentsPage() {
     }));
     setDidAutofillConfig(true);
   }, [datasetsQuery.data, didAutofillConfig]);
+
+  function applyPreset(nextPreset: ExperimentPreset) {
+    setPreset(nextPreset);
+    setRunForm((current) => {
+      if (nextPreset === "quick") {
+        return {
+          ...current,
+          epochs: 8,
+          batch_size: 16,
+          lr: 0.001,
+          weight_decay: 0.0001,
+          patience: 4,
+        };
+      }
+
+      if (nextPreset === "research") {
+        return {
+          ...current,
+          epochs: 48,
+          batch_size: 8,
+          lr: 0.0007,
+          weight_decay: 0.00015,
+          patience: 12,
+        };
+      }
+
+      return {
+        ...current,
+        epochs: 24,
+        batch_size: 16,
+        lr: 0.001,
+        weight_decay: 0.0001,
+        patience: 8,
+      };
+    });
+  }
 
   function buildRunPayload() {
     const cutoff = fromDateTimeLocalValue(runForm.generated_from_timestamp_utc);
@@ -184,43 +234,237 @@ export function ExperimentsPage() {
   });
 
   const reportAggregates = reportQuery.data?.aggregates;
+  const selectedSeries = (seriesQuery.data ?? []).find((series) => series.id === selectedSeriesId) ?? null;
+  const targetMetrics = parseCsvList(runForm.target_columns);
+  const featureMetrics = parseCsvList(runForm.feature_columns);
+  const hasBacktest = Boolean(runForm.generated_from_timestamp_utc);
 
   return (
     <div className="page-stack">
       <PageHeader
         eyebrow="Исследование"
-        title="Эксперименты и серии"
-        description="Экран для исследовательских прогонов: отдельные запуски экспериментов, серии и сводные отчёты."
+        title="Эксперименты без перегруза"
+        description="Основной путь теперь проще: выбери режим запуска, проверь краткую сводку и только при необходимости раскрывай тонкие настройки."
       />
 
+      <section className="step-grid">
+        <div className="step-card">
+          <span>Шаг 1</span>
+          <strong>Выбери режим запуска</strong>
+          <p>Быстрая проверка, сбалансированный прогон или более тщательное исследование.</p>
+        </div>
+        <div className="step-card">
+          <span>Шаг 2</span>
+          <strong>Проверь окно и горизонт</strong>
+          <p>Эти параметры определяют, сколько истории видит модель и насколько далеко она прогнозирует.</p>
+        </div>
+        <div className="step-card">
+          <span>Шаг 3</span>
+          <strong>При необходимости включи backtest</strong>
+          <p>Историческая проверка полезна для сравнения серий, но для обычного прогона не обязательна.</p>
+        </div>
+      </section>
+
       <div className="dashboard-grid">
-        <Panel title="Создать series" subtitle="Серия нужна, чтобы группировать эксперименты по исследовательской гипотезе.">
+        <Panel title="Быстрый запуск эксперимента" subtitle="Главный сценарий: заполни только основные поля, а детали оставь в расширенных настройках.">
+          <div className="preset-grid">
+            <button
+              type="button"
+              className={preset === "quick" ? "tab-button tab-button-active" : "tab-button"}
+              onClick={() => applyPreset("quick")}
+            >
+              Быстрая проверка
+            </button>
+            <button
+              type="button"
+              className={preset === "balanced" ? "tab-button tab-button-active" : "tab-button"}
+              onClick={() => applyPreset("balanced")}
+            >
+              Сбалансированный
+            </button>
+            <button
+              type="button"
+              className={preset === "research" ? "tab-button tab-button-active" : "tab-button"}
+              onClick={() => applyPreset("research")}
+            >
+              Исследовательский
+            </button>
+          </div>
+
           <div className="form-grid">
             <label>
-              <span>Название</span>
-              <input value={seriesForm.name} onChange={(event) => setSeriesForm({ ...seriesForm, name: event.target.value })} />
-              <FieldHint>Короткое имя серии. Например: baseline-v1 или weather-plus-emissions.</FieldHint>
+              <span>Название запуска</span>
+              <input value={runForm.name} onChange={(event) => setRunForm({ ...runForm, name: event.target.value })} />
+              <FieldHint>Короткое и понятное имя запуска, например `aqi-baseline-april`.</FieldHint>
             </label>
             <label>
-              <span>Цель</span>
+              <span>Серия</span>
+              <select value={runForm.series_id} onChange={(event) => setRunForm({ ...runForm, series_id: event.target.value })}>
+                <option value="">Без серии</option>
+                {(seriesQuery.data ?? []).map((series) => (
+                  <option key={series.id} value={series.id}>
+                    {series.name}
+                  </option>
+                ))}
+              </select>
+              <FieldHint>Серия нужна только если ты хочешь сравнивать много запусков одной гипотезы.</FieldHint>
+            </label>
+            <label>
+              <span>Входное окно, ч</span>
+              <input type="number" value={runForm.input_len_hours} onChange={(event) => setRunForm({ ...runForm, input_len_hours: Number(event.target.value) })} />
+              <FieldHint>Окно входных данных для датасета и прогноза. Если есть прошлый срез, значения подставятся автоматически.</FieldHint>
+            </label>
+            <label>
+              <span>Горизонт прогноза, ч</span>
+              <input
+                type="number"
+                value={runForm.forecast_horizon_hours}
+                onChange={(event) => setRunForm({ ...runForm, forecast_horizon_hours: Number(event.target.value) })}
+              />
+              <FieldHint>Сколько часов вперёд прогнозируем внутри этого запуска.</FieldHint>
+            </label>
+            <label className="full-span">
+              <span>Дата отсечения для backtest</span>
+              <input
+                type="datetime-local"
+                value={runForm.generated_from_timestamp_utc}
+                onChange={(event) => setRunForm({ ...runForm, generated_from_timestamp_utc: event.target.value })}
+                placeholder={toDateTimeLocalValue(new Date())}
+              />
+              <FieldHint>Оставь пустым для обычного запуска. Заполняй только если нужна ретропроверка на прошлом периоде.</FieldHint>
+            </label>
+            <ScheduleField
+              value={runForm.scheduled_for}
+              onChange={(event) => setRunForm({ ...runForm, scheduled_for: event.target.value })}
+            />
+          </div>
+
+          <div className="summary-strip">
+            <div className="mini-card">
+              <span>Режим</span>
+              <strong>
+                {preset === "quick" ? "Быстрая проверка" : preset === "balanced" ? "Сбалансированный" : "Исследовательский"}
+              </strong>
+            </div>
+            <div className="mini-card">
+              <span>Цели модели</span>
+              <strong>{formatMetricList(targetMetrics)}</strong>
+            </div>
+            <div className="mini-card">
+              <span>Backtest</span>
+              <strong>{hasBacktest ? "включен" : "выключен"}</strong>
+            </div>
+            <div className="mini-card">
+              <span>Признаков</span>
+              <strong>{featureMetrics?.length ?? 0}</strong>
+            </div>
+          </div>
+
+          <details className="details-card" open={showAdvanced} onToggle={(event) => setShowAdvanced(event.currentTarget.open)}>
+            <summary>Расширенные настройки обучения и датасета</summary>
+            <div className="form-grid">
+              <label>
+                <span>Эпохи</span>
+                <input type="number" value={runForm.epochs} onChange={(event) => setRunForm({ ...runForm, epochs: Number(event.target.value) })} />
+                <FieldHint>Чем больше эпох, тем дольше обучение. Для первичной проверки обычно хватает малого значения.</FieldHint>
+              </label>
+              <label>
+                <span>Размер батча</span>
+                <input
+                  type="number"
+                  value={runForm.batch_size}
+                  onChange={(event) => setRunForm({ ...runForm, batch_size: Number(event.target.value) })}
+                />
+                <FieldHint>Безопасный стартовый вариант для сравнения нескольких прогонов.</FieldHint>
+              </label>
+              <label>
+                <span>Learning rate</span>
+                <input type="number" step="0.0001" value={runForm.lr} onChange={(event) => setRunForm({ ...runForm, lr: Number(event.target.value) })} />
+                <FieldHint>Тонкий параметр оптимизации. Для обычного сценария лучше оставлять пресет.</FieldHint>
+              </label>
+              <label>
+                <span>Weight decay</span>
+                <input
+                  type="number"
+                  step="0.00001"
+                  value={runForm.weight_decay}
+                  onChange={(event) => setRunForm({ ...runForm, weight_decay: Number(event.target.value) })}
+                />
+                <FieldHint>Регуляризация против переобучения.</FieldHint>
+              </label>
+              <label>
+                <span>Patience</span>
+                <input type="number" value={runForm.patience} onChange={(event) => setRunForm({ ...runForm, patience: Number(event.target.value) })} />
+                <FieldHint>Через сколько неудачных эпох сработает early stopping.</FieldHint>
+              </label>
+              <label>
+                <span>Seed</span>
+                <input type="number" value={runForm.seed} onChange={(event) => setRunForm({ ...runForm, seed: Number(event.target.value) })} />
+                <FieldHint>Полезно фиксировать, если сравниваешь несколько серий между собой.</FieldHint>
+              </label>
+              <label className="full-span">
+                <span>Признаки</span>
+                <textarea
+                  rows={3}
+                  value={runForm.feature_columns}
+                  onChange={(event) => setRunForm({ ...runForm, feature_columns: event.target.value })}
+                  placeholder="plume_pm25, plume_no2, plume_so2, hour_sin, ..."
+                />
+                <FieldHint>Если не меняешь гипотезу, лучше использовать автоподставленный набор из последнего датасета.</FieldHint>
+              </label>
+              <label className="full-span">
+                <span>Целевые метрики</span>
+                <textarea
+                  rows={2}
+                  value={runForm.target_columns}
+                  onChange={(event) => setRunForm({ ...runForm, target_columns: event.target.value })}
+                  placeholder="mycityair_aqi_mean, plume_pm25, plume_so2"
+                />
+                <FieldHint>Здесь можно явно оставить `mycityair_aqi_mean`, чтобы эксперимент обучал прогноз индекса AQI.</FieldHint>
+              </label>
+            </div>
+          </details>
+
+          <ActionHint>Если нет задачи сравнивать десятки конфигураций, используй пресет, не трогай расширенные поля и просто смотри на итоговые RMSE обучения и ретропроверки.</ActionHint>
+          {formMessage ? <FormMessage tone="error">{formMessage}</FormMessage> : null}
+          <div className="button-row">
+            <button type="button" className="primary-button" onClick={() => runExperimentMutation.mutate(buildRunPayload())}>
+              Запустить сразу
+            </button>
+            <button type="button" className="secondary-button" onClick={() => runExperimentAsyncMutation.mutate(buildRunPayload())}>
+              Запустить в фоне
+            </button>
+          </div>
+          {runFeedback ? <OperationResult title={runFeedback.title} status={runFeedback.status} items={runFeedback.items} raw={runFeedback.raw} /> : null}
+        </Panel>
+
+        <Panel title="Серия экспериментов" subtitle="Необязательный блок. Нужен только если хочешь группировать запуски по одной гипотезе.">
+          <div className="form-grid">
+            <label>
+              <span>Название серии</span>
+              <input value={seriesForm.name} onChange={(event) => setSeriesForm({ ...seriesForm, name: event.target.value })} />
+              <FieldHint>Например: `aqi-baseline`, `pollutants-v2`, `norilsk-april`.</FieldHint>
+            </label>
+            <label>
+              <span>Исследовательская цель</span>
               <input value={seriesForm.goal} onChange={(event) => setSeriesForm({ ...seriesForm, goal: event.target.value })} />
-              <FieldHint>Одной фразой опиши, что именно сравниваешь или проверяешь.</FieldHint>
+              <FieldHint>Короткая формулировка гипотезы: что ты хочешь проверить этой серией.</FieldHint>
             </label>
             <label className="full-span">
               <span>Описание</span>
               <textarea
-                rows={3}
+                rows={4}
                 value={seriesForm.description}
                 onChange={(event) => setSeriesForm({ ...seriesForm, description: event.target.value })}
               />
-              <FieldHint>Подробное описание гипотезы, состава признаков или причин, почему запускаешь эту серию.</FieldHint>
+              <FieldHint>Полезно записывать, чем эта серия отличается от других, чтобы потом не терять контекст.</FieldHint>
             </label>
           </div>
-          {formMessage ? <FormMessage tone="error">{formMessage}</FormMessage> : null}
+          <ActionHint>Если нужен один одиночный эксперимент, этот блок можно пропустить. Серия нужна именно для накопления сравнительной истории.</ActionHint>
           <div className="button-row">
             <button
               type="button"
-              className="primary-button"
+              className="ghost-button"
               onClick={() =>
                 createSeriesMutation.mutate({
                   name: seriesForm.name,
@@ -243,106 +487,6 @@ export function ExperimentsPage() {
           {seriesFeedback ? (
             <OperationResult title={seriesFeedback.title} status={seriesFeedback.status} items={seriesFeedback.items} raw={seriesFeedback.raw} />
           ) : null}
-        </Panel>
-
-        <Panel title="Запуск эксперимента" subtitle="Полный исследовательский прогон: датасет, обучение, прогноз и при необходимости ретропроверка в одном сценарии.">
-          <div className="form-grid">
-            <label>
-              <span>Название эксперимента</span>
-              <input value={runForm.name} onChange={(event) => setRunForm({ ...runForm, name: event.target.value })} />
-              <FieldHint>Имя конкретного запуска внутри серии. Лучше делать осмысленным, чтобы потом сравнивать результаты.</FieldHint>
-            </label>
-            <label>
-              <span>Серия</span>
-              <select value={runForm.series_id} onChange={(event) => setRunForm({ ...runForm, series_id: event.target.value })}>
-                <option value="">Без серии</option>
-                {(seriesQuery.data ?? []).map((series) => (
-                  <option key={series.id} value={series.id}>
-                    {series.name}
-                  </option>
-                ))}
-              </select>
-              <FieldHint>Если выбрать серию, результаты попадут в общий отчёт по этой исследовательской группе.</FieldHint>
-            </label>
-            <label>
-              <span>Входное окно, ч</span>
-              <input type="number" value={runForm.input_len_hours} onChange={(event) => setRunForm({ ...runForm, input_len_hours: Number(event.target.value) })} />
-              <FieldHint>Окно входных данных для датасета и прогноза. Если есть прошлый срез, значения подставятся автоматически.</FieldHint>
-            </label>
-            <label>
-              <span>Горизонт прогноза, ч</span>
-              <input
-                type="number"
-                value={runForm.forecast_horizon_hours}
-                onChange={(event) => setRunForm({ ...runForm, forecast_horizon_hours: Number(event.target.value) })}
-              />
-              <FieldHint>Горизонт прогноза внутри одного запуска эксперимента. Берётся из последнего среза, если он найден.</FieldHint>
-            </label>
-            <label>
-              <span>Эпохи</span>
-              <input type="number" value={runForm.epochs} onChange={(event) => setRunForm({ ...runForm, epochs: Number(event.target.value) })} />
-              <FieldHint>Количество эпох обучения в этом эксперименте. Для быстрого прогона ставь маленькое значение.</FieldHint>
-            </label>
-            <label>
-              <span>Размер батча</span>
-              <input
-                type="number"
-                value={runForm.batch_size}
-                onChange={(event) => setRunForm({ ...runForm, batch_size: Number(event.target.value) })}
-              />
-              <FieldHint>Размер батча для шага train. Обычно `8` или `16` достаточно.</FieldHint>
-            </label>
-            <label>
-              <span>Случайное зерно</span>
-              <input type="number" value={runForm.seed} onChange={(event) => setRunForm({ ...runForm, seed: Number(event.target.value) })} />
-              <FieldHint>Фиксирует воспроизводимость сравнения между запусками.</FieldHint>
-            </label>
-            <label className="full-span">
-              <span>Признаки</span>
-              <textarea
-                rows={2}
-                value={runForm.feature_columns}
-                onChange={(event) => setRunForm({ ...runForm, feature_columns: event.target.value })}
-                placeholder="metric_a, metric_b, metric_c"
-              />
-              <FieldHint>Если в системе уже есть срез датасета, сюда подставится его список признаков. Можно отредактировать вручную.</FieldHint>
-            </label>
-            <label className="full-span">
-              <span>Целевые метрики</span>
-              <textarea
-                rows={2}
-                value={runForm.target_columns}
-                onChange={(event) => setRunForm({ ...runForm, target_columns: event.target.value })}
-                placeholder="target_a, target_b"
-              />
-              <FieldHint>Если найден прошлый срез, целевые метрики также подставятся автоматически.</FieldHint>
-            </label>
-            <label className="full-span">
-              <span>Дата отсечения для backtest</span>
-              <input
-                type="datetime-local"
-                value={runForm.generated_from_timestamp_utc}
-                onChange={(event) => setRunForm({ ...runForm, generated_from_timestamp_utc: event.target.value })}
-                placeholder={toDateTimeLocalValue(new Date())}
-              />
-              <FieldHint>Необязательное поле. Если заполнить, запуск эксперимента дополнительно выполнит историческую ретропроверку от этой точки.</FieldHint>
-            </label>
-            <ScheduleField
-              value={runForm.scheduled_for}
-              onChange={(event) => setRunForm({ ...runForm, scheduled_for: event.target.value })}
-            />
-          </div>
-          <ActionHint>Если в системе уже есть срез датасета, форма возьмёт его конфигурацию как стартовую. Для обычной проверки достаточно одного быстрого запуска, для сравнений лучше сначала создать серию.</ActionHint>
-          {formMessage ? <FormMessage tone="error">{formMessage}</FormMessage> : null}
-          <div className="button-row">
-            <button type="button" className="primary-button" onClick={() => runExperimentMutation.mutate(buildRunPayload())}>
-              Запустить сразу
-            </button>
-            <button type="button" className="secondary-button" onClick={() => runExperimentAsyncMutation.mutate(buildRunPayload())}>
-              Запустить в фоне
-            </button>
-          </div>
-          {runFeedback ? <OperationResult title={runFeedback.title} status={runFeedback.status} items={runFeedback.items} raw={runFeedback.raw} /> : null}
         </Panel>
       </div>
 
@@ -367,12 +511,25 @@ export function ExperimentsPage() {
         </Panel>
 
         <Panel title="Отчёт по серии" subtitle="Агрегаты по выбранной серии экспериментов.">
+          <label className="full-span">
+            <span>Выбранная серия</span>
+            <select value={selectedSeriesId} onChange={(event) => setSelectedSeriesId(event.target.value)}>
+              <option value="">Выбери серию</option>
+              {(seriesQuery.data ?? []).map((series) => (
+                <option key={series.id} value={series.id}>
+                  {series.name}
+                </option>
+              ))}
+            </select>
+            <FieldHint>Отчёт и агрегаты ниже перестраиваются по выбранной серии.</FieldHint>
+          </label>
           {reportQuery.data && reportAggregates ? (
             <div className="detail-stack">
               <div className="inline-summary">
                 <StatusBadge status={reportQuery.data.series.status} />
                 <span className="pill">{reportQuery.data.series.name}</span>
               </div>
+              {selectedSeries?.description ? <p className="panel-note">{selectedSeries.description}</p> : null}
               <div className="detail-grid">
                 <div className="mini-card">
                   <span>Запусков</span>
