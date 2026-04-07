@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { ActionHint, EmptyState, FieldHint, FormMessage, KeyMetricRow, OperationResult, PageHeader, Panel, ScheduleField, StatusBadge, Table } from "../components/ui";
+import { ActionHint, ActiveModelOverview, EmptyState, FieldHint, FormMessage, OperationResult, PageHeader, Panel, ScheduleField, StatusBadge, Table } from "../components/ui";
 import { useTaskTracker } from "../hooks/useTaskTracker";
 import { ApiError, api, getApiErrorMessage } from "../lib/api";
 import { asObject, formatDateTime, formatMetricList, formatNumber, fromDateTimeLocalValue, getNestedMetric, humanizeOperation } from "../lib/format";
@@ -41,7 +41,13 @@ export function ModelsPage() {
   const datasetsQuery = useQuery({ queryKey: ["models", "datasets"], queryFn: () => api.listDatasets(20) });
   const modelsQuery = useQuery({ queryKey: ["models"], queryFn: () => api.listModels(12) });
   const activeModelQuery = useQuery({ queryKey: ["models", "active"], queryFn: () => queryOrNull(() => api.getActiveModel()) });
-  const leaderboardQuery = useQuery({ queryKey: ["models", "leaderboard"], queryFn: () => api.getModelLeaderboard("overall_rmse", 8) });
+  const activeDatasetId = activeModelQuery.data?.dataset ?? null;
+  const activeDatasetQuery = useQuery({
+    queryKey: ["models", "active", "dataset", activeDatasetId],
+    queryFn: () => api.getDataset(activeDatasetId as string),
+    enabled: Boolean(activeDatasetId),
+  });
+  const leaderboardQuery = useQuery({ queryKey: ["models", "leaderboard"], queryFn: () => api.getModelLeaderboard("overall_rmse", 4) });
 
   useEffect(() => {
     if (!datasetsQuery.data?.length) {
@@ -80,7 +86,14 @@ export function ModelsPage() {
         ],
         raw: result,
       });
-      await queryClient.invalidateQueries({ queryKey: ["models"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["models"] }),
+        queryClient.invalidateQueries({ queryKey: ["models", "active"] }),
+        queryClient.invalidateQueries({ queryKey: ["models", "leaderboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["overview", "models"] }),
+        queryClient.invalidateQueries({ queryKey: ["overview", "active-model"] }),
+        queryClient.invalidateQueries({ queryKey: ["overview", "leaderboard"] }),
+      ]);
     },
     onError: (error) => {
       setFormMessage(getApiErrorMessage(error, "Не удалось обучить модель."));
@@ -117,7 +130,7 @@ export function ModelsPage() {
     },
   });
 
-  const activeMetrics = asObject(activeModelQuery.data?.metrics);
+  const activeLeaderboardEntry = (leaderboardQuery.data ?? []).find((item) => item.model_version_id === activeModelQuery.data?.id) ?? null;
 
   return (
     <div className="page-stack">
@@ -208,16 +221,11 @@ export function ModelsPage() {
 
         <Panel title="Активная модель" subtitle="Показывает текущую основную модель, которую frontend и backend считают базовой.">
           {activeModelQuery.data ? (
-            <div className="detail-stack">
-              <div className="inline-summary">
-                <StatusBadge status={activeModelQuery.data.status} />
-                <span className="pill">{activeModelQuery.data.name}</span>
-              </div>
-              <KeyMetricRow label="Общая RMSE" value={getNestedMetric(activeMetrics, "summary", "overall_rmse")} />
-              <KeyMetricRow label="Общая MAE" value={getNestedMetric(activeMetrics, "summary", "overall_mae")} />
-              <KeyMetricRow label="Макро MAPE" value={getNestedMetric(activeMetrics, "summary", "macro_mape")} />
-              <p className="panel-note">Цели: {formatMetricList(activeModelQuery.data.target_names)}</p>
-            </div>
+            <ActiveModelOverview
+              model={activeModelQuery.data}
+              dataset={activeDatasetQuery.data}
+              leaderboardEntry={activeLeaderboardEntry}
+            />
           ) : (
             <EmptyState title="Нет активной модели" description="После первого обучения этот блок станет основным источником для текущей базовой модели." />
           )}
@@ -242,15 +250,19 @@ export function ModelsPage() {
           />
         </Panel>
 
-        <Panel title="Лидерборд по оценке" subtitle="Агрегированная аналитика по метрикам ретропроверки и оценки прогноза.">
+        <Panel title="Лидерборд по оценке" subtitle="Топ-4 готовых моделей: ошибки, объём датасета и текущий production-статус.">
           <Table
-            columns={["Модель", "Оценок", "RMSE", "MAE", "Покрытие"]}
+            columns={["#", "Модель", "Источник", "Backtests", "Сэмплы", "RMSE", "MAE", "MAPE", "Статус"]}
             rows={(leaderboardQuery.data ?? []).map((row) => [
+              `#${row.rank}`,
               row.model_name,
-              String(row.evaluation_count),
+              row.metric_source === "backtest" ? "Backtest" : "Training",
+              formatNumber(row.evaluation_count, "0"),
+              formatNumber(row.dataset_sample_count, "0"),
               formatNumber(row.avg_overall_rmse),
               formatNumber(row.avg_overall_mae),
-              formatNumber(row.avg_coverage_ratio),
+              formatNumber(row.avg_macro_mape),
+              <StatusBadge status={row.is_active ? "active" : "idle"} />,
             ])}
           />
         </Panel>

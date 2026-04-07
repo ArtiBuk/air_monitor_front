@@ -280,6 +280,64 @@
     @apply text-lg font-semibold text-white;
   }
 
+  .model-spotlight {
+    @apply grid gap-4;
+  }
+
+  .model-spotlight-copy {
+    @apply rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(125,211,199,0.08),rgba(255,255,255,0.03))] p-5;
+  }
+
+  .model-spotlight-copy strong {
+    @apply mt-4 block break-words text-[30px] font-semibold leading-[1.05] tracking-[-0.05em] text-white;
+  }
+
+  .model-spotlight-copy p {
+    @apply mt-3 text-sm leading-6 text-ink-300;
+  }
+
+  .model-score-grid {
+    @apply grid gap-3 sm:grid-cols-2 2xl:grid-cols-4;
+  }
+
+  .model-score-card,
+  .model-spec-card,
+  .collection-stat-card,
+  .collection-step,
+  .model-target-block {
+    @apply rounded-[24px] border border-white/10 bg-white/[0.035] p-4;
+  }
+
+  .model-score-card span,
+  .model-spec-card span,
+  .collection-stat-card span,
+  .collection-step span,
+  .model-target-block span {
+    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-ink-500;
+  }
+
+  .model-score-card strong,
+  .model-spec-card strong,
+  .collection-stat-card strong {
+    @apply mt-3 block text-2xl font-semibold tracking-[-0.03em] text-white;
+  }
+
+  .model-score-card {
+    @apply min-h-[168px];
+  }
+
+  .model-score-card small {
+    @apply mt-2 block text-xs leading-5 text-ink-400;
+  }
+
+  .model-spec-grid {
+    @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .model-target-block p {
+    @apply mt-3 text-sm leading-6 text-ink-300;
+  }
+
   .summary-strip .mini-card strong {
     @apply text-base leading-7;
   }
@@ -331,6 +389,38 @@
 
   .aqi-side-card strong {
     @apply mt-2 block text-base font-semibold leading-7 text-white;
+  }
+
+  .collection-hero {
+    @apply grid gap-4 rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(244,162,89,0.08),rgba(125,211,199,0.06))] p-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)];
+  }
+
+  .collection-hero-copy strong {
+    @apply mt-4 block text-2xl font-semibold tracking-[-0.04em] text-white;
+  }
+
+  .collection-hero-copy p {
+    @apply mt-3 text-sm leading-6 text-ink-300;
+  }
+
+  .collection-stat-grid {
+    @apply grid gap-3 sm:grid-cols-3 xl:grid-cols-1;
+  }
+
+  .collection-flow {
+    @apply mt-4 grid gap-3 md:grid-cols-3;
+  }
+
+  .collection-step strong {
+    @apply mt-3 block text-lg font-semibold text-white;
+  }
+
+  .collection-step p {
+    @apply mt-2 text-sm leading-6 text-ink-300;
+  }
+
+  .collection-source-row {
+    @apply mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-black/10 px-4 py-3;
   }
 
   .severity-badge {
