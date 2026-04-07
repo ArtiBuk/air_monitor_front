@@ -4,15 +4,18 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 
 import { cn } from "../lib/cn";
 import {
+  asObject,
   formatDateTime,
   formatFullDateTime,
+  formatMetricList,
   formatMetricName,
   formatNumber,
   formatPercent,
+  getNestedMetric,
   getMetricSeverity,
   type MetricSeverity,
 } from "../lib/format";
-import type { ForecastRecord } from "../types/api";
+import type { DatasetSnapshot, ForecastRecord, ModelLeaderboardEntry, ModelVersion } from "../types/api";
 
 export function PageHeader({
   eyebrow,
@@ -238,6 +241,92 @@ export function KeyMetricRow({
     <div className="key-metric-row">
       <span>{label}</span>
       <strong>{variant === "percent" ? formatPercent(value) : formatNumber(value)}</strong>
+    </div>
+  );
+}
+
+export function ActiveModelOverview({
+  model,
+  dataset,
+  leaderboardEntry,
+}: {
+  model: ModelVersion;
+  dataset?: DatasetSnapshot | null;
+  leaderboardEntry?: ModelLeaderboardEntry | null;
+}) {
+  const metrics = asObject(model.metrics);
+  const rmse = leaderboardEntry?.avg_overall_rmse ?? getNestedMetric(metrics, "summary", "overall_rmse");
+  const mae = leaderboardEntry?.avg_overall_mae ?? getNestedMetric(metrics, "summary", "overall_mae");
+  const mape = leaderboardEntry?.avg_macro_mape ?? getNestedMetric(metrics, "summary", "macro_mape");
+  const coverage = leaderboardEntry?.avg_coverage_ratio ?? null;
+  const metricSourceLabel = leaderboardEntry?.metric_source === "backtest" ? "ретропроверка" : "test split";
+  const productionLabel = leaderboardEntry ? `#${leaderboardEntry.rank} в production-рейтинге` : "готова для production";
+
+  return (
+    <div className="model-spotlight">
+      <div className="model-spotlight-copy">
+        <div className="inline-summary">
+          <StatusBadge status={model.status} />
+          <span className="pill">{productionLabel}</span>
+          <span className="pill">метрики: {metricSourceLabel}</span>
+        </div>
+        <strong>{model.name}</strong>
+        <p>
+          Модель использует окно {model.input_len_hours}ч и строит прогноз на {model.forecast_horizon_hours}ч. В hourly
+          pipeline приоритет идёт по ошибкам RMSE/MAE/MAPE, а затем по объёму датасета.
+        </p>
+      </div>
+
+      <div className="model-score-grid">
+        <div className="model-score-card">
+          <span>RMSE</span>
+          <strong>{formatNumber(rmse)}</strong>
+          <small>чем ниже, тем лучше</small>
+        </div>
+        <div className="model-score-card">
+          <span>MAE</span>
+          <strong>{formatNumber(mae)}</strong>
+          <small>средняя абсолютная ошибка</small>
+        </div>
+        <div className="model-score-card">
+          <span>MAPE</span>
+          <strong>{formatNumber(mape)}</strong>
+          <small>относительная ошибка</small>
+        </div>
+        <div className="model-score-card">
+          <span>Покрытие / backtests</span>
+          <strong>
+            {leaderboardEntry ? `${formatPercent(coverage)} · ${formatNumber(leaderboardEntry.evaluation_count, "0")}` : "-"}
+          </strong>
+          <small>{leaderboardEntry ? "среднее покрытие и число ретропроверок" : "появится после оценки прогнозов"}</small>
+        </div>
+      </div>
+
+      <div className="model-spec-grid">
+        <div className="model-spec-card">
+          <span>Сэмплы датасета</span>
+          <strong>{formatNumber(dataset?.sample_count ?? leaderboardEntry?.dataset_sample_count ?? null, "0")}</strong>
+        </div>
+        <div className="model-spec-card">
+          <span>Часов в master frame</span>
+          <strong>{formatNumber(dataset?.master_row_count ?? leaderboardEntry?.dataset_master_row_count ?? null, "0")}</strong>
+        </div>
+        <div className="model-spec-card">
+          <span>Признаков / целей</span>
+          <strong>
+            {model.feature_names.length} / {model.target_names.length}
+          </strong>
+        </div>
+        <div className="model-spec-card">
+          <span>Создана</span>
+          <strong>{formatFullDateTime(model.created_at)}</strong>
+        </div>
+      </div>
+
+      <div className="model-target-block">
+        <span>Целевые показатели</span>
+        <p>{formatMetricList(model.target_names)}</p>
+      </div>
     </div>
   );
 }

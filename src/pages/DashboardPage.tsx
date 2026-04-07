@@ -2,19 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 
 import { ApiError, api } from "../lib/api";
 import {
-  asObject,
   formatDateTime,
   formatIsoDateTime,
-  formatMetricList,
   formatMetricName,
   formatNumber,
   formatSourceList,
   getMetricSeverity,
   getMetricSeverityLabel,
   getMetricSeverityRank,
-  getNestedMetric,
 } from "../lib/format";
-import { EmptyState, ForecastChart, KeyMetricRow, MetricCard, PageHeader, Panel, SeverityBadge, SmallMeta, StatusBadge, Table } from "../components/ui";
+import { ActiveModelOverview, EmptyState, ForecastChart, MetricCard, PageHeader, Panel, SeverityBadge, SmallMeta, StatusBadge, Table } from "../components/ui";
 
 async function queryOrNull<T>(loader: () => Promise<T>) {
   try {
@@ -36,12 +33,18 @@ export function DashboardPage() {
   const experimentsQuery = useQuery({ queryKey: ["overview", "experiments"], queryFn: () => api.listExperimentRuns({ limit: 6 }) });
   const seriesQuery = useQuery({ queryKey: ["overview", "series"], queryFn: () => api.listExperimentSeries(6) });
   const activeModelQuery = useQuery({ queryKey: ["overview", "active-model"], queryFn: () => queryOrNull(() => api.getActiveModel()) });
+  const activeDatasetId = activeModelQuery.data?.dataset ?? null;
+  const activeDatasetQuery = useQuery({
+    queryKey: ["overview", "active-model", "dataset", activeDatasetId],
+    queryFn: () => api.getDataset(activeDatasetId as string),
+    enabled: Boolean(activeDatasetId),
+  });
   const latestForecastQuery = useQuery({ queryKey: ["overview", "latest-forecast"], queryFn: () => queryOrNull(() => api.getLatestForecast()) });
-  const leaderboardQuery = useQuery({ queryKey: ["overview", "leaderboard"], queryFn: () => api.getModelLeaderboard("overall_rmse", 5) });
+  const leaderboardQuery = useQuery({ queryKey: ["overview", "leaderboard"], queryFn: () => api.getModelLeaderboard("overall_rmse", 4) });
 
-  const activeModelMetrics = asObject(activeModelQuery.data?.metrics);
   const latestForecast = latestForecastQuery.data;
   const leaderboard = leaderboardQuery.data ?? [];
+  const activeLeaderboardEntry = leaderboard.find((item) => item.model_version_id === activeModelQuery.data?.id) ?? null;
   const counts = overviewQuery.data?.counts;
   const collectionConfig = overviewQuery.data?.automatic_collection;
   const latestForecastAqi = latestForecast?.records.at(-1)?.values?.mycityair_aqi_mean ?? null;
@@ -132,16 +135,11 @@ export function DashboardPage() {
 
         <Panel title="Активная модель" subtitle="Текущая модель по умолчанию, которую backend использует при генерации прогноза.">
           {activeModelQuery.data ? (
-            <div className="detail-stack">
-              <div className="inline-summary">
-                <StatusBadge status={activeModelQuery.data.status} />
-                <span className="pill">{activeModelQuery.data.name}</span>
-              </div>
-              <KeyMetricRow label="Общая RMSE" value={getNestedMetric(activeModelMetrics, "summary", "overall_rmse")} />
-              <KeyMetricRow label="Общая MAE" value={getNestedMetric(activeModelMetrics, "summary", "overall_mae")} />
-              <KeyMetricRow label="Макро MAPE" value={getNestedMetric(activeModelMetrics, "summary", "macro_mape")} />
-              <p className="panel-note">Цели: {formatMetricList(activeModelQuery.data.target_names)}</p>
-            </div>
+            <ActiveModelOverview
+              model={activeModelQuery.data}
+              dataset={activeDatasetQuery.data}
+              leaderboardEntry={activeLeaderboardEntry}
+            />
           ) : (
             <EmptyState title="Активная модель отсутствует" description="После первого успешного обучения backend автоматически выставит готовую модель активной." />
           )}
@@ -152,25 +150,68 @@ export function DashboardPage() {
         title="Автосбор наблюдений"
         subtitle="Hourly-задача Celery теперь показывает реальное окно, из которого она каждый раз забирает данные."
       >
-        <Table
-          columns={["Параметр", "Значение"]}
-          rows={[
-            ["Запуск по расписанию", `каждый час в :${String(collectionConfig?.schedule_minute ?? 5).padStart(2, "0")}`],
-            ["Запрашиваемое окно", `${collectionConfig?.lookback_hours ?? 48} ч назад от текущего момента`],
-            ["Интервал агрегации", collectionConfig?.interval ?? "Interval1H"],
-            ["Размер окна", `${collectionConfig?.window_hours ?? 1} ч`],
-            ["Источники", formatSourceList(collectionConfig?.enabled_sources)],
-          ]}
-        />
+        <div className="collection-hero">
+          <div className="collection-hero-copy">
+            <div className="inline-summary">
+              <span className="eyebrow">Celery beat</span>
+              <span className="pill">{`каждый час в :${String(collectionConfig?.schedule_minute ?? 5).padStart(2, "0")}`}</span>
+            </div>
+            <strong>Наблюдения обновляются по скользящему окну, без ручного рестарта пайплайна.</strong>
+            <p>
+              Каждая hourly-задача заново забирает последние {collectionConfig?.lookback_hours ?? 48} часов, агрегирует данные
+              до {collectionConfig?.interval ?? "Interval1H"} и обновляет витрину наблюдений.
+            </p>
+          </div>
+
+          <div className="collection-stat-grid">
+            <div className="collection-stat-card">
+              <span>Lookback</span>
+              <strong>{collectionConfig?.lookback_hours ?? 48} ч</strong>
+            </div>
+            <div className="collection-stat-card">
+              <span>Окно агрегации</span>
+              <strong>{collectionConfig?.window_hours ?? 1} ч</strong>
+            </div>
+            <div className="collection-stat-card">
+              <span>Источники</span>
+              <strong>{collectionConfig?.enabled_sources?.length ?? 0}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="collection-flow">
+          <div className="collection-step">
+            <span>01</span>
+            <strong>Забор данных</strong>
+            <p>Окно от текущего момента назад на {collectionConfig?.lookback_hours ?? 48} часов.</p>
+          </div>
+          <div className="collection-step">
+            <span>02</span>
+            <strong>Нормализация</strong>
+            <p>Приведение к {collectionConfig?.interval ?? "Interval1H"} и окну {collectionConfig?.window_hours ?? 1}ч.</p>
+          </div>
+          <div className="collection-step">
+            <span>03</span>
+            <strong>Обновление БД</strong>
+            <p>Пишутся актуальные наблюдения для витрин, датасетов и последующих прогнозов.</p>
+          </div>
+        </div>
+
+        <div className="collection-source-row">
+          <span className="panel-note">Источники:</span>
+          <strong>{formatSourceList(collectionConfig?.enabled_sources)}</strong>
+        </div>
       </Panel>
 
-      <Panel title="Лидерборд моделей" subtitle="Сводная оценка по метрикам ретропроверки.">
+      <Panel title="Лидерборд моделей" subtitle="Топ-4 готовых моделей с учётом ошибок и объёма датасета.">
         {leaderboard.length ? (
           <Table
-            columns={["Модель", "Оценок", "RMSE", "MAE", "MAPE", "Активна"]}
+            columns={["#", "Модель", "Источник", "Сэмплы", "RMSE", "MAE", "MAPE", "Статус"]}
             rows={leaderboard.map((item) => [
+              `#${item.rank}`,
               item.model_name,
-              formatNumber(item.evaluation_count),
+              item.metric_source === "backtest" ? "Backtest" : "Training",
+              formatNumber(item.dataset_sample_count, "0"),
               formatNumber(item.avg_overall_rmse),
               formatNumber(item.avg_overall_mae),
               formatNumber(item.avg_macro_mape),

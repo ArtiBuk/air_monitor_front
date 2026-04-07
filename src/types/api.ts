@@ -140,16 +140,20 @@ export interface TrainModelPayload {
 }
 
 export interface ModelLeaderboardEntry {
+  rank: number;
   model_version_id: string;
   model_name: string;
   evaluation_count: number;
-  avg_overall_rmse: number;
-  avg_overall_mae: number;
-  avg_macro_mape: number;
-  avg_coverage_ratio: number;
+  avg_overall_rmse: number | null;
+  avg_overall_mae: number | null;
+  avg_macro_mape: number | null;
+  avg_coverage_ratio: number | null;
   forecast_horizon_hours: number;
   input_len_hours: number;
   is_active: boolean;
+  dataset_sample_count: number;
+  dataset_master_row_count: number;
+  metric_source: "backtest" | "training";
   latest_evaluated_at_utc: string | null;
 }
 
