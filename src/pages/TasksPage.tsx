@@ -102,11 +102,7 @@ export function TasksPage() {
               formatDateTime(task.started_at),
               formatDateTime(task.finished_at),
               task.status === "scheduled" ? (
-                <button
-                  type="button"
-                  className="table-button"
-                  onClick={() => cancelScheduledTaskMutation.mutate(task.id)}
-                >
+                <button type="button" className="table-button" onClick={() => cancelScheduledTaskMutation.mutate(task.id)}>
                   Отменить
                 </button>
               ) : (

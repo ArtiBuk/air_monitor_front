@@ -82,6 +82,9 @@ const metricThresholds: Record<string, { normal: number; elevated: number }> = {
   plume_co: { normal: 4, elevated: 9 },
 };
 
+const myCityAirAqiThresholds = { normal: 3, elevated: 6 };
+const myCityAirAqiMetrics = new Set(["aqi", "mycityair_aqi_mean", "mycityair_aqi_max", "mycityair_aqi_min"]);
+
 export type MetricSeverity = "normal" | "elevated" | "critical" | "unknown";
 
 export function formatDateTime(value: string | null | undefined): string {
@@ -209,7 +212,7 @@ export function getMetricSeverity(metric: string | null | undefined, value: numb
     return "unknown";
   }
 
-  const thresholds = metricThresholds[metric];
+  const thresholds = myCityAirAqiMetrics.has(metric) && value <= 10 ? myCityAirAqiThresholds : metricThresholds[metric];
   if (!thresholds) {
     return "unknown";
   }

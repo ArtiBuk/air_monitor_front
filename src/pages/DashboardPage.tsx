@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { ApiError, api } from "../lib/api";
+import { ApiError, api, getApiErrorMessage } from "../lib/api";
 import {
   formatDateTime,
   formatIsoDateTime,
@@ -11,7 +12,7 @@ import {
   getMetricSeverityLabel,
   getMetricSeverityRank,
 } from "../lib/format";
-import { ActiveModelOverview, EmptyState, ForecastChart, MetricCard, PageHeader, Panel, SeverityBadge, SmallMeta, StatusBadge, Table } from "../components/ui";
+import { ActiveModelOverview, EmptyState, ForecastChart, FormMessage, MetricCard, PageHeader, Panel, SeverityBadge, SmallMeta, StatusBadge, Table } from "../components/ui";
 
 async function queryOrNull<T>(loader: () => Promise<T>) {
   try {
@@ -25,6 +26,8 @@ async function queryOrNull<T>(loader: () => Promise<T>) {
 }
 
 export function DashboardPage() {
+  const [isDownloadingReport, setIsDownloadingReport] = useState(false);
+  const [reportError, setReportError] = useState("");
   const overviewQuery = useQuery({ queryKey: ["overview", "stats"], queryFn: () => api.getMonitoringOverview() });
   const observationsQuery = useQuery({ queryKey: ["overview", "observations"], queryFn: () => api.listObservations({ limit: 8 }) });
   const datasetsQuery = useQuery({ queryKey: ["overview", "datasets"], queryFn: () => api.listDatasets(6) });
@@ -66,13 +69,40 @@ export function DashboardPage() {
       return (right.value ?? 0) - (left.value ?? 0);
     })[0];
 
+  async function handleDownloadReport() {
+    setIsDownloadingReport(true);
+    setReportError("");
+    try {
+      const file = await api.downloadMonitoringExecutiveReport();
+      const url = URL.createObjectURL(file.blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.filename ?? "air-monitor-report.pdf";
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+    } catch (error) {
+      setReportError(getApiErrorMessage(error, "Не удалось скачать итоговый отчёт."));
+    } finally {
+      setIsDownloadingReport(false);
+    }
+  }
+
   return (
     <div className="page-stack">
       <PageHeader
         eyebrow="Обзор лаборатории"
         title="Панель исследования качества воздуха"
         description="Главный экран по состоянию пайплайна: наблюдения, датасеты, модели, прогнозы и серии экспериментов в одном месте."
+        actions={
+          <button type="button" className="ghost-button" onClick={() => void handleDownloadReport()} disabled={isDownloadingReport}>
+            {isDownloadingReport ? "Готовим PDF..." : "Скачать итоговый отчёт"}
+          </button>
+        }
       />
+
+      {reportError ? <FormMessage tone="error">{reportError}</FormMessage> : null}
 
       <section className="metrics-grid">
         <MetricCard label="Наблюдения" value={formatNumber(counts?.observations ?? 0, "0")} helper="всего в базе" tone="accent" />
@@ -118,33 +148,31 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <div className="dashboard-grid">
-        <Panel title="Последний прогноз" subtitle="Быстрый взгляд на временной ряд последнего успешного запуска прогноза.">
-          {latestForecast ? (
-            <>
-              <div className="inline-summary">
-                <StatusBadge status={latestForecast.status} />
-                <SmallMeta createdAt={latestForecast.created_at} updatedLabel="Создан" />
-              </div>
-              <ForecastChart records={latestForecast.records} />
-            </>
-          ) : (
-            <EmptyState title="Прогнозов пока нет" description="Сначала обучите модель и запустите генерацию прогноза на странице «Прогнозы»." />
-          )}
-        </Panel>
+      <Panel title="Последний прогноз" subtitle="Быстрый взгляд на временной ряд последнего успешного запуска прогноза.">
+        {latestForecast ? (
+          <>
+            <div className="inline-summary">
+              <StatusBadge status={latestForecast.status} />
+              <SmallMeta createdAt={latestForecast.created_at} updatedLabel="Создан" />
+            </div>
+            <ForecastChart records={latestForecast.records} />
+          </>
+        ) : (
+          <EmptyState title="Прогнозов пока нет" description="Сначала обучите модель и запустите генерацию прогноза на странице «Прогнозы»." />
+        )}
+      </Panel>
 
-        <Panel title="Активная модель" subtitle="Текущая модель по умолчанию, которую backend использует при генерации прогноза.">
-          {activeModelQuery.data ? (
-            <ActiveModelOverview
-              model={activeModelQuery.data}
-              dataset={activeDatasetQuery.data}
-              leaderboardEntry={activeLeaderboardEntry}
-            />
-          ) : (
-            <EmptyState title="Активная модель отсутствует" description="После первого успешного обучения backend автоматически выставит готовую модель активной." />
-          )}
-        </Panel>
-      </div>
+      <Panel title="Активная модель" subtitle="Текущая модель по умолчанию, которую backend использует при генерации прогноза.">
+        {activeModelQuery.data ? (
+          <ActiveModelOverview
+            model={activeModelQuery.data}
+            dataset={activeDatasetQuery.data}
+            leaderboardEntry={activeLeaderboardEntry}
+          />
+        ) : (
+          <EmptyState title="Активная модель отсутствует" description="После первого успешного обучения backend автоматически выставит готовую модель активной." />
+        )}
+      </Panel>
 
       <Panel
         title="Автосбор наблюдений"

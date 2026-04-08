@@ -5,8 +5,10 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { useAuth, AuthProvider } from "../hooks/useAuth";
 import { TaskTrackerProvider } from "../hooks/useTaskTracker";
+import { ThemeProvider } from "../hooks/useTheme";
 
 const DashboardPage = lazy(() => import("../pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
+const AirMapPage = lazy(() => import("../pages/AirMapPage").then((module) => ({ default: module.AirMapPage })));
 const DatasetsPage = lazy(() => import("../pages/DatasetsPage").then((module) => ({ default: module.DatasetsPage })));
 const ExperimentsPage = lazy(() => import("../pages/ExperimentsPage").then((module) => ({ default: module.ExperimentsPage })));
 const ForecastsPage = lazy(() => import("../pages/ForecastsPage").then((module) => ({ default: module.ForecastsPage })));
@@ -24,11 +26,20 @@ const queryClient = new QueryClient({
   },
 });
 
+function LoadingScreen({ label }: { label: string }) {
+  return (
+    <div className="loading-screen">
+      <span className="loading-spinner" aria-hidden />
+      <span>{label}</span>
+    </div>
+  );
+}
+
 function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div className="loading-screen">Загрузка интерфейса...</div>;
+    return <LoadingScreen label="Загрузка интерфейса..." />;
   }
 
   if (!isAuthenticated) {
@@ -41,11 +52,12 @@ function ProtectedRoute() {
 function RouterTree() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<div className="loading-screen">Загрузка экрана...</div>}>
+      <Suspense fallback={<LoadingScreen label="Загрузка экрана..." />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/app" element={<ProtectedRoute />}>
             <Route index element={<DashboardPage />} />
+            <Route path="air-map" element={<AirMapPage />} />
             <Route path="observations" element={<ObservationsPage />} />
             <Route path="datasets" element={<DatasetsPage />} />
             <Route path="models" element={<ModelsPage />} />
@@ -63,11 +75,13 @@ function RouterTree() {
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TaskTrackerProvider>
-          <RouterTree />
-        </TaskTrackerProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <TaskTrackerProvider>
+            <RouterTree />
+          </TaskTrackerProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

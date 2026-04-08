@@ -67,13 +67,13 @@ export function LoginPage() {
       </section>
 
       <section className="auth-panel">
-        <div className="auth-tabs">
-          <button type="button" className={mode === "login" ? "tab-button tab-button-active" : "tab-button"} onClick={() => setMode("login")}>
+        <div className="auth-tab-row">
+          <button type="button" className={`tab-button${mode === "login" ? " tab-button-active" : ""}`} onClick={() => setMode("login")}>
             Вход
           </button>
           <button
             type="button"
-            className={mode === "register" ? "tab-button tab-button-active" : "tab-button"}
+            className={`tab-button${mode === "register" ? " tab-button-active" : ""}`}
             onClick={() => setMode("register")}
           >
             Регистрация
@@ -116,7 +116,7 @@ export function LoginPage() {
             />
           </label>
 
-          {error ? <div className="form-alert">{error}</div> : null}
+          {error ? <div className="form-alert full-span">{error}</div> : null}
 
           <button type="submit" className="primary-button full-span" disabled={isLoading}>
             {isLoading ? "Обработка..." : mode === "login" ? "Войти в систему" : "Создать аккаунт"}
