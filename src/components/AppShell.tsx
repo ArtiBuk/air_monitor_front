@@ -1,11 +1,13 @@
-import { Activity, BarChart3, BookOpenText, Database, FlaskConical, Gauge, LogOut, Radar, Waves } from "lucide-react";
+import { Activity, BarChart3, BookOpenText, Database, FlaskConical, Gauge, LogOut, MapPinned, MoonStar, Radar, SunMedium, Waves } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
 import { useTaskTracker } from "../hooks/useTaskTracker";
+import { useTheme } from "../hooks/useTheme";
 
 const navigation = [
   { to: "/app", label: "Обзор", icon: Gauge, end: true },
+  { to: "/app/air-map", label: "Карта воздуха", icon: MapPinned },
   { to: "/app/observations", label: "Наблюдения", icon: Waves },
   { to: "/app/datasets", label: "Датасеты", icon: Database },
   { to: "/app/models", label: "Модели", icon: BarChart3 },
@@ -17,6 +19,7 @@ const navigation = [
 export function AppShell() {
   const { user, logout } = useAuth();
   const { tasks } = useTaskTracker();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="shell">
@@ -25,7 +28,7 @@ export function AppShell() {
           <div className="brand-block">
             <div className="brand-mark">AM</div>
             <div>
-              <strong>Air Monitor Lab</strong>
+              <strong className="topbar-title">Air Monitor Lab</strong>
               <p>НПР · мониторинг · прогноз</p>
             </div>
           </div>
@@ -36,13 +39,17 @@ export function AppShell() {
               <strong>{user?.full_name || user?.email}</strong>
               <small>{tasks.length} задач в фокусе</small>
             </div>
-            <a href="/air-monitor-user-guide.md" download="air-monitor-user-guide.md" className="ghost-button">
+            <span className="pill">{`${tasks.length} активных задач`}</span>
+            <button type="button" className="ghost-button theme-toggle-button" onClick={toggleTheme} aria-label="Переключить тему">
+              {theme === "dark" ? <MoonStar size={18} /> : <SunMedium size={18} />}
+            </button>
+            <a className="ghost-button" href="/air-monitor-user-guide.md" download="air-monitor-user-guide.md">
               <BookOpenText size={16} />
-              <span>Инструкция</span>
+              Инструкция
             </a>
             <button type="button" className="ghost-button" onClick={() => void logout()}>
               <LogOut size={16} />
-              <span>Выйти</span>
+              Выйти
             </button>
           </div>
         </div>
@@ -52,7 +59,7 @@ export function AppShell() {
         <aside className="sidebar">
           <div className="sidebar-title">
             <span className="eyebrow">Навигация</span>
-            <strong>Рабочие разделы</strong>
+            <strong className="sidebar-heading">Рабочие разделы</strong>
           </div>
 
           <nav className="nav-block">

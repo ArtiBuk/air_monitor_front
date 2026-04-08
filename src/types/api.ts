@@ -68,6 +68,53 @@ export interface ObservationSyncResult {
   db_updated_count: number;
 }
 
+export interface AirMapBounds {
+  min_lat: number;
+  max_lat: number;
+  min_lon: number;
+  max_lon: number;
+  center_lat: number;
+  center_lon: number;
+}
+
+export interface AirMapStationPoint {
+  station_id: string;
+  station_name: string;
+  lat: number;
+  lon: number;
+  observed_at_utc: string;
+  value: number | null;
+  unit: string;
+  source: string;
+  source_kind: string;
+  extra: JsonObject;
+}
+
+export interface AirMapMetricSnapshot {
+  metric: string;
+  value: number | null;
+  unit: string;
+  observed_at_utc: string;
+  source: string;
+  station_name: string;
+  extra: JsonObject;
+}
+
+export interface AirMapSummary {
+  latest_station_timestamp: string | null;
+  latest_city_timestamp: string | null;
+  station_count: number;
+  city_metric_count: number;
+  sources: string[];
+}
+
+export interface AirMapSnapshot {
+  summary: AirMapSummary;
+  bounds: AirMapBounds | null;
+  station_points: AirMapStationPoint[];
+  city_metrics: AirMapMetricSnapshot[];
+}
+
 export interface MonitoringOverviewCounts {
   observations: number;
   datasets: number;

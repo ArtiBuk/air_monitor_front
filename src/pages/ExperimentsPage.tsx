@@ -268,25 +268,13 @@ export function ExperimentsPage() {
       <div className="dashboard-grid">
         <Panel title="Быстрый запуск эксперимента" subtitle="Главный сценарий: заполни только основные поля, а детали оставь в расширенных настройках.">
           <div className="preset-grid">
-            <button
-              type="button"
-              className={preset === "quick" ? "tab-button tab-button-active" : "tab-button"}
-              onClick={() => applyPreset("quick")}
-            >
+            <button type="button" className={preset === "quick" ? "primary-button" : "ghost-button"} onClick={() => applyPreset("quick")}>
               Быстрая проверка
             </button>
-            <button
-              type="button"
-              className={preset === "balanced" ? "tab-button tab-button-active" : "tab-button"}
-              onClick={() => applyPreset("balanced")}
-            >
+            <button type="button" className={preset === "balanced" ? "primary-button" : "ghost-button"} onClick={() => applyPreset("balanced")}>
               Сбалансированный
             </button>
-            <button
-              type="button"
-              className={preset === "research" ? "tab-button tab-button-active" : "tab-button"}
-              onClick={() => applyPreset("research")}
-            >
+            <button type="button" className={preset === "research" ? "primary-button" : "ghost-button"} onClick={() => applyPreset("research")}>
               Исследовательский
             </button>
           </div>

@@ -1,6 +1,7 @@
 import type {
   AsyncTaskLaunch,
   AsyncTaskStatus,
+  AirMapSnapshot,
   AuthSession,
   BuildDatasetPayload,
   CollectObservationsPayload,
@@ -102,7 +103,7 @@ async function refreshSession() {
   return refreshPromise;
 }
 
-async function request<T>(path: string, init: RequestOptions = {}, retryOnAuth = true): Promise<T> {
+function buildRequestInit(init: RequestOptions = {}) {
   const headers = new Headers(init.headers);
   const rawBody = init.body;
   const hasNativeBody =
@@ -117,12 +118,16 @@ async function request<T>(path: string, init: RequestOptions = {}, retryOnAuth =
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  return {
     ...init,
     body: hasObjectBody ? JSON.stringify(rawBody) : (rawBody as BodyInit | undefined),
     headers,
-    credentials: "include",
-  });
+    credentials: "include" as const,
+  };
+}
+
+async function request<T>(path: string, init: RequestOptions = {}, retryOnAuth = true): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, buildRequestInit(init));
 
   if (response.status === 401 && retryOnAuth && canRefresh(path)) {
     const refreshed = await refreshSession();
@@ -142,6 +147,43 @@ async function request<T>(path: string, init: RequestOptions = {}, retryOnAuth =
   return data as T;
 }
 
+function parseContentDispositionFilename(header: string | null): string | null {
+  if (!header) {
+    return null;
+  }
+
+  const utfMatch = header.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utfMatch?.[1]) {
+    return decodeURIComponent(utfMatch[1]);
+  }
+
+  const plainMatch = header.match(/filename="?([^";]+)"?/i);
+  return plainMatch?.[1] ?? null;
+}
+
+async function requestBlob(path: string, init: RequestOptions = {}, retryOnAuth = true): Promise<{ blob: Blob; filename: string | null }> {
+  const response = await fetch(`${API_BASE_URL}${path}`, buildRequestInit(init));
+
+  if (response.status === 401 && retryOnAuth && canRefresh(path)) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      return requestBlob(path, init, false);
+    }
+  }
+
+  if (!response.ok) {
+    const contentType = response.headers.get("content-type") ?? "";
+    const data = contentType.includes("application/json") ? ((await response.json()) as MessageResponse) : null;
+    const detail = data && typeof data === "object" && "detail" in data ? String(data.detail) : "Request failed.";
+    throw new ApiError(response.status, detail);
+  }
+
+  return {
+    blob: await response.blob(),
+    filename: parseContentDispositionFilename(response.headers.get("content-disposition")),
+  };
+}
+
 export const api = {
   login: (payload: LoginPayload) => request<AuthSession>("/api/auth/login", { method: "POST", body: payload }, false),
   register: (payload: RegisterPayload) =>
@@ -149,8 +191,10 @@ export const api = {
   logout: () => request<MessageResponse>("/api/auth/logout", { method: "POST", body: {} }, false),
   me: () => request<User>("/api/users/me"),
   getMonitoringOverview: () => request<MonitoringOverview>("/api/monitoring/overview"),
-  listObservations: (params: { metric?: string; source?: string; limit?: number }) =>
+  downloadMonitoringExecutiveReport: () => requestBlob("/api/monitoring/overview/report.pdf", { cache: "no-store" }),
+  listObservations: (params: { metric?: string; source?: string; start?: string; finish?: string; limit?: number }) =>
     request<Observation[]>(withQuery("/api/monitoring/observations", params)),
+  getAirMap: () => request<AirMapSnapshot>("/api/monitoring/air-map"),
   collectObservations: (payload: CollectObservationsPayload) =>
     request<ObservationSyncResult>("/api/monitoring/observations/collect", { method: "POST", body: payload }),
   collectObservationsAsync: (payload: CollectObservationsPayload) =>
