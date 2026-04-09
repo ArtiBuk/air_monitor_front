@@ -12,7 +12,8 @@ import {
   getMetricSeverityLabel,
   getMetricSeverityRank,
 } from "../lib/format";
-import { ActiveModelOverview, EmptyState, ForecastChart, FormMessage, MetricCard, PageHeader, Panel, SeverityBadge, SmallMeta, StatusBadge, Table } from "../components/ui";
+import { ActiveModelOverview, EmptyState, FormMessage, MetricCard, PageHeader, Panel, SeverityBadge, SmallMeta, StatusBadge, Table } from "../components/ui";
+import { ForecastChart } from "../components/ForecastChart";
 
 async function queryOrNull<T>(loader: () => Promise<T>) {
   try {

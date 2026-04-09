@@ -29,6 +29,7 @@ const metricLabels: Record<string, string> = {
   mycityair_aqi_mean: "Индекс качества воздуха (AQI)",
   mycityair_aqi_max: "Максимальный AQI",
   mycityair_aqi_min: "Минимальный AQI",
+  index: "Сводный индекс загрязнения",
   plume_index: "Сводный индекс загрязнения",
   pm25: "Мелкие частицы PM2.5",
   plume_pm25: "Мелкие частицы PM2.5",
@@ -67,6 +68,7 @@ const metricThresholds: Record<string, { normal: number; elevated: number }> = {
   mycityair_aqi_mean: { normal: 50, elevated: 100 },
   mycityair_aqi_max: { normal: 50, elevated: 100 },
   mycityair_aqi_min: { normal: 50, elevated: 100 },
+  index: { normal: 25, elevated: 50 },
   plume_index: { normal: 25, elevated: 50 },
   pm25: { normal: 15, elevated: 35 },
   plume_pm25: { normal: 15, elevated: 35 },
@@ -257,12 +259,12 @@ export function humanizeOperation(value: string | null | undefined): string {
 
   const normalized = value.toLowerCase();
   const labels: Record<string, string> = {
-    collect_observations: "Сбор наблюдений",
-    build_dataset: "Сборка датасета",
-    train_model: "Обучение модели",
-    generate_forecast: "Построение прогноза",
-    evaluate_forecast: "Оценка прогноза",
-    run_experiment: "Запуск эксперимента",
+    collect_observations: "Обновление наблюдений",
+    build_dataset: "Подготовка набора данных",
+    train_model: "Обучение модели прогноза",
+    generate_forecast: "Расчёт прогноза",
+    evaluate_forecast: "Проверка прогноза",
+    run_experiment: "Исследовательский запуск",
     external_task: "Внешняя задача",
     "внешняя_задача": "Внешняя задача",
   };

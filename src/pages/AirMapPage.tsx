@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { EmptyState, ForecastChart, PageHeader, Panel } from "../components/ui";
+import { EmptyState, PageHeader, Panel } from "../components/ui";
+import { ForecastChart } from "../components/ForecastChart";
 import { useTheme } from "../hooks/useTheme";
 import { ApiError, api } from "../lib/api";
 import {
@@ -191,11 +192,13 @@ function toCityMetric(item: Observation): AirMapMetricSnapshot {
 }
 
 function mapForecastMetricName(metric: string) {
-  if (metric.startsWith("plume_")) {
-    return metric.slice(6);
+  const normalized = metric.toLowerCase();
+
+  if (normalized.startsWith("plume_")) {
+    return normalized.slice(6);
   }
 
-  return metric;
+  return normalized;
 }
 
 function getTimelineKindLabel(kind: "history" | "forecast") {
@@ -216,9 +219,6 @@ function formatTimelineDayLabel(timestamp: string) {
   return new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "short" }).format(new Date(timestamp));
 }
 
-function formatTimelineHourLabel(timestamp: string) {
-  return new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" }).format(new Date(timestamp));
-}
 
 function toLocalDayKey(timestamp: string) {
   const date = new Date(timestamp);
@@ -294,7 +294,8 @@ function getLatestSummaryTimestamp(summary: { latest_station_timestamp: string |
 }
 
 function normalizeCityMetricKey(metric: string) {
-  return metric.startsWith("plume_") ? metric.slice(6) : metric;
+  const normalized = metric.toLowerCase();
+  return normalized.startsWith("plume_") ? normalized.slice(6) : normalized;
 }
 
 function buildForecastCityMetrics(timestamp: string, values: Record<string, number>, unitByMetric: Map<string, string>): AirMapMetricSnapshot[] {
@@ -357,7 +358,7 @@ function buildPopupContent(station: DecoratedStationPoint) {
         <span>AQI</span>
         <strong>${formatNumber(station.value, "—")}</strong>
       </div>
-      <div>
+      <div class="air-map-popup-status">
         <span>Статус</span>
         <strong>${station.severityLabel}</strong>
       </div>
@@ -752,8 +753,8 @@ export function AirMapPage() {
       popupRef.current = new maplibregl.Popup({
         closeButton: false,
         closeOnClick: false,
-        maxWidth: "168px",
-        offset: 10,
+        maxWidth: "320px",
+        offset: 14,
         className: "air-map-popup-shell",
       });
 
@@ -862,7 +863,6 @@ export function AirMapPage() {
 
   const sources = airMap?.summary.sources ?? [];
   const selectedTimestampLabel = selectedTimestamp ? formatDateTime(selectedTimestamp) : "-";
-  const selectedTimestampHourLabel = selectedTimestamp ? formatTimelineHourLabel(selectedTimestamp) : "--:--";
   const isForecastTimestamp = timelineEntry?.kind === "forecast";
   const timelineForRender = useMemo(() => {
     if (!latestHistoricalTimestamp) {
@@ -940,9 +940,9 @@ export function AirMapPage() {
               <div ref={mapContainerRef} className="air-map-canvas" />
 
               <div className="air-map-control-panel">
-                <div className="air-map-control-summary">
-                  <span className="pill">{`Срез: ${selectedTimestampLabel}`}</span>
-                  <span className="pill">{isForecastTimestamp ? "Прогноз" : "История"}</span>
+                <div className="air-map-control-heading">
+                  <span>Слои карты</span>
+                  <strong>Посты, подписи, городской фон и точки риска</strong>
                 </div>
                 <div className="air-map-control-switches">
                   {[
@@ -967,7 +967,7 @@ export function AirMapPage() {
                         <span>Горячие точки</span>
                         <strong>{stationLayerPoints.length ? "Топ риска" : "Без station-level слоя"}</strong>
                       </div>
-                      <small>{selectedTimestampLabel}</small>
+                      <small>По station-level AQI</small>
                     </div>
                     {hotspotStations.length ? (
                       <div className="air-hotspot-list">
@@ -1007,7 +1007,7 @@ export function AirMapPage() {
                   <div className="air-map-city-overlay-head">
                     <div>
                       <span>{isForecastTimestamp ? "Городской прогноз" : "Городской фон"}</span>
-                      <small>{selectedTimestampLabel}</small>
+                      <small>Все метрики на выбранный срез</small>
                     </div>
                   </div>
                   <div className="air-map-city-overlay-grid">
@@ -1031,9 +1031,9 @@ export function AirMapPage() {
               <div className="air-map-timeline-head">
                 <div>
                   <span>Шкала времени</span>
-                  <small>{selectedTimestampLabel}</small>
+                  <strong>{selectedTimestampLabel}</strong>
                 </div>
-                <span className="pill">{selectedTimestampHourLabel}</span>
+                <span className="pill">{getTimelineKindLabel(timelineEntry?.kind ?? "history")}</span>
               </div>
               <div className="air-map-slider-wrap">
                 <input
@@ -1060,10 +1060,6 @@ export function AirMapPage() {
                     </span>
                   ))}
                 </div>
-              </div>
-              <div className="air-map-timeline-meta">
-                <span>{getTimelineKindLabel(timelineEntry?.kind ?? "history")}</span>
-                <strong>{selectedTimestampLabel}</strong>
               </div>
             </div>
           </div>

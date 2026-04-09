@@ -3,6 +3,9 @@ import ReactDOM from "react-dom/client";
 
 import { App } from "./app/App";
 import "./styles.css";
+import "./styles/shell.css";
+import "./styles/data-ui.css";
+import "./styles/air-map.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
