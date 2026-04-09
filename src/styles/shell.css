@@ -1,0 +1,369 @@
+  .shell {
+    @apply min-h-screen;
+  }
+
+  .topbar {
+    @apply px-4 pt-4;
+  }
+
+  .topbar-inner {
+    @apply mx-auto flex max-w-[1560px] flex-col gap-4 rounded-[28px] border px-5 py-4 sm:flex-row sm:items-center sm:justify-between;
+    border-color: var(--border-color);
+    background: var(--surface-strong);
+    box-shadow: var(--shadow-panel);
+    backdrop-filter: blur(18px);
+  }
+
+  .brand-block {
+    @apply flex items-center gap-4;
+  }
+
+  .brand-block p {
+    @apply mt-1 text-sm;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .brand-mark {
+    @apply grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-mist-500 to-teal-400 font-extrabold tracking-[0.2em];
+    color: #0b1015;
+  }
+
+  .topbar-actions {
+    @apply flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-end;
+  }
+
+  .topbar-actions > * {
+    min-width: 168px;
+  }
+
+  .user-chip,
+  .user-card {
+    @apply grid gap-1 rounded-2xl border px-4 py-3 text-sm;
+    border-color: var(--border-color);
+    background: var(--surface-soft);
+  }
+
+  .user-chip {
+    min-width: 168px;
+  }
+
+  .muted-label,
+  .panel-note,
+  .field-hint,
+  .small-meta,
+  .chart-caption,
+  .page-header p,
+  .page-header-copy p,
+  .panel-head p,
+  .hero-points span,
+  .metric-card small,
+  .empty-state p {
+    color: var(--text-muted);
+  }
+
+  .shell-inner {
+    @apply mx-auto grid max-w-[1560px] gap-5 px-4 pb-10 pt-4 xl:grid-cols-[264px_minmax(0,1fr)];
+    align-items: start;
+  }
+
+  .sidebar {
+    @apply h-fit self-start rounded-[30px] border px-4 pb-4 pt-4;
+    border-color: var(--border-color);
+    background: var(--surface);
+    box-shadow: var(--shadow-panel);
+    backdrop-filter: blur(18px);
+  }
+
+  .sidebar-title {
+    @apply mb-3 grid gap-0.5;
+  }
+
+  .nav-block {
+    @apply grid gap-2 sm:grid-cols-2 xl:grid-cols-1;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-sm font-medium transition duration-200;
+    color: var(--text-muted);
+  }
+
+  .nav-link:hover {
+    border-color: var(--border-color);
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+
+  .nav-link-active {
+    color: var(--text-primary);
+    border-color: rgba(125, 211, 199, 0.28);
+    background: rgba(125, 211, 199, 0.14);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .sidebar-foot {
+    @apply mt-4;
+  }
+
+  .content {
+    @apply min-w-0;
+  }
+
+  .content-inner {
+    @apply w-full max-w-none;
+  }
+
+  .topbar-title,
+  .sidebar-heading {
+    @apply block text-lg font-extrabold tracking-[-0.03em];
+    color: var(--text-primary);
+  }
+
+  .theme-toggle-button {
+    @apply rounded-2xl px-4 py-3;
+  }
+
+  .auth-tab-row {
+    @apply mb-4 flex flex-wrap gap-2;
+  }
+
+  .loading-screen {
+    @apply grid min-h-screen place-items-center gap-3 px-4 text-center text-sm;
+    color: var(--text-secondary);
+  }
+
+  .loading-spinner {
+    @apply inline-flex h-10 w-10 rounded-full border-4 border-transparent;
+    border-top-color: #7dd3c7;
+    border-right-color: rgba(125, 211, 199, 0.35);
+    animation: spin 1s linear infinite;
+  }
+
+  .page-stack {
+    @apply grid gap-5;
+  }
+
+  .page-header {
+    @apply flex flex-col gap-4 md:flex-row md:items-start md:justify-between;
+  }
+
+  .page-header-copy {
+    @apply grid max-w-4xl gap-3;
+  }
+
+  .page-header h1,
+  .auth-hero h1 {
+    @apply text-4xl font-extrabold tracking-[-0.05em] md:text-5xl;
+    margin-top: 0;
+    color: var(--text-primary);
+    line-height: 0.98;
+  }
+
+  .page-header-copy p,
+  .panel-head p,
+  .action-hint,
+  .empty-state p,
+  .collection-hero-copy p,
+  .collection-step p,
+  .step-card p,
+  .model-target-block p,
+  .model-spotlight-copy p {
+    line-height: 1.72;
+  }
+
+  .page-header-copy p {
+    max-width: 70ch;
+    font-size: 1rem;
+  }
+
+  .page-actions {
+    @apply flex flex-wrap items-start gap-2 md:max-w-[46rem] md:justify-end;
+  }
+
+  .eyebrow {
+    @apply inline-flex w-fit items-center rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-mist-500;
+    border-color: rgba(125, 211, 199, 0.22);
+    background: rgba(125, 211, 199, 0.1);
+  }
+
+  .eyebrow .MuiChip-label {
+    padding-inline: 0;
+  }
+
+  .metrics-grid {
+    @apply grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6;
+  }
+
+  .metrics-grid > * {
+    min-width: 0;
+  }
+
+  .dashboard-grid {
+    @apply grid gap-4 2xl:grid-cols-2;
+  }
+
+  .detail-grid {
+    @apply grid gap-3 sm:grid-cols-2 2xl:grid-cols-3;
+  }
+
+  .metric-card {
+    @apply rounded-[26px] border p-5;
+    min-height: 152px;
+    border-color: var(--border-color);
+    background: var(--surface);
+    box-shadow: var(--shadow-panel);
+  }
+
+  .metric-card span {
+    @apply text-sm;
+    color: var(--text-muted);
+  }
+
+  .metric-card strong {
+    @apply mt-3 block text-3xl font-extrabold tracking-[-0.04em];
+    line-height: 1;
+    color: var(--text-primary);
+  }
+
+  .metric-card small {
+    @apply mt-3 block text-sm;
+  }
+
+  .metric-card-accent {
+    background: linear-gradient(135deg, rgba(125, 211, 199, 0.16), var(--surface) 72%);
+  }
+
+  .metric-card-warm {
+    background: linear-gradient(135deg, rgba(244, 162, 89, 0.16), var(--surface) 72%);
+  }
+
+  .step-card span {
+    @apply text-xs font-bold uppercase tracking-[0.14em];
+    color: rgba(244, 162, 89, 0.88);
+  }
+
+  .preset-grid,
+  .step-grid,
+  .summary-strip {
+    @apply grid gap-3;
+  }
+
+  .summary-strip {
+    @apply sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .summary-strip {
+    @apply lg:grid-cols-2 2xl:grid-cols-4;
+  }
+
+  .preset-grid {
+    @apply md:grid-cols-3;
+  }
+
+  .step-grid {
+    @apply md:grid-cols-3;
+  }
+
+  .step-card {
+    @apply rounded-[26px] border p-4;
+    border-color: var(--border-color);
+    background: var(--surface-contrast);
+  }
+
+  .step-card strong {
+    @apply mt-2 block text-lg font-semibold;
+    color: var(--text-primary);
+  }
+
+  .step-card p {
+    @apply mt-2 text-sm;
+    color: var(--text-muted);
+  }
+
+  .panel {
+    @apply rounded-[30px] border p-5;
+    border-color: var(--border-color);
+    background: var(--surface);
+    box-shadow: var(--shadow-panel);
+    backdrop-filter: blur(18px);
+  }
+
+  .panel-head {
+    @apply mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between;
+  }
+
+  .panel-head > div {
+    @apply grid min-w-0 gap-1;
+  }
+
+  .panel-head h2 {
+    @apply text-lg font-semibold tracking-[-0.02em];
+    color: var(--text-primary);
+  }
+
+  .detail-stack {
+    @apply grid gap-3;
+  }
+
+  .inline-summary,
+  .button-row,
+  .chart-caption {
+    @apply flex flex-wrap items-start gap-3;
+  }
+
+  .action-hint {
+    @apply rounded-2xl border px-4 py-3 text-sm;
+    border-color: var(--border-color);
+    background: var(--surface-muted);
+    color: var(--text-secondary);
+  }
+
+  .status,
+  .pill {
+    @apply inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em];
+    line-height: 1;
+    min-height: 2rem;
+    vertical-align: middle;
+    white-space: normal;
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .pill {
+    @apply normal-case tracking-normal;
+    border-color: var(--border-color);
+    background: var(--surface-soft);
+    color: var(--text-secondary);
+  }
+
+  .status .MuiChip-label,
+  .pill .MuiChip-label {
+    padding-inline: 0;
+  }
+
+  .status-ok {
+    @apply border-mist-500/20 bg-mist-500/10 text-mist-500;
+  }
+
+  .status-danger {
+    @apply border-rose-400/20 bg-rose-400/10 text-rose-300;
+  }
+
+  .status-warn {
+    @apply border-amber-400/20 bg-amber-400/10 text-amber-300;
+  }
+
+  .key-metric-row {
+    @apply flex items-center justify-between gap-3 border-b pb-3 text-sm;
+    border-color: var(--border-color);
+  }
+
+  .key-metric-row span {
+    color: var(--text-muted);
+  }
+
+  .key-metric-row strong,
+  .mini-card strong {
+    @apply text-lg font-semibold;
+    color: var(--text-primary);
+  }

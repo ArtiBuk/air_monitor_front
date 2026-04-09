@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { ActionHint, EmptyState, FieldHint, ForecastChart, FormMessage, OperationResult, PageHeader, Panel, ScheduleField, StatusBadge, Table } from "../components/ui";
+import { ActionHint, EmptyState, FieldHint, FormMessage, OperationResult, PageHeader, Panel, ScheduleField, StatusBadge, Table } from "../components/ui";
+import { ForecastChart } from "../components/ForecastChart";
 import { useTaskTracker } from "../hooks/useTaskTracker";
 import { ApiError, api, getApiErrorMessage } from "../lib/api";
 import { asObject, formatDateTime, formatNumber, formatPercent, fromDateTimeLocalValue, getNestedMetric, humanizeOperation, toDateTimeLocalValue } from "../lib/format";
