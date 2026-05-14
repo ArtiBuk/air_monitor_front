@@ -20,6 +20,7 @@ type ResultState = {
   status?: string | null;
   items: Array<{ label: string; value: string }>;
   raw?: unknown;
+  warnings?: string[];
 };
 
 export function ObservationsPage() {
@@ -48,6 +49,19 @@ export function ObservationsPage() {
   const syncMutation = useMutation({
     mutationFn: api.collectObservations,
     onSuccess: async (result) => {
+      const sourceStatusLabel: Record<string, string> = {
+        ok: "ok",
+        empty: "пусто",
+        failed: "ошибка",
+      };
+      const sourceSummary = result.source_reports
+        .map((report) => {
+          const status = sourceStatusLabel[report.status] ?? report.status;
+          const base = `${formatSourceName(report.source, report.source)}: ${status}`;
+          return report.raw_count > 0 ? `${base} (${report.raw_count})` : base;
+        })
+        .join("; ");
+
       setFormMessage("");
       setFeedback({
         title: "Сбор наблюдений завершён",
@@ -57,7 +71,9 @@ export function ObservationsPage() {
           { label: "Очищено", value: String(result.cleaned_count) },
           { label: "Создано", value: String(result.db_created_count) },
           { label: "Обновлено", value: String(result.db_updated_count) },
+          { label: "Источники", value: sourceSummary || "-" },
         ],
+        warnings: result.warnings ?? [],
         raw: result,
       });
       await queryClient.invalidateQueries({ queryKey: ["observations"] });
@@ -190,6 +206,7 @@ export function ObservationsPage() {
             Поставить в очередь
           </button>
         </div>
+        {feedback?.warnings && feedback.warnings.length > 0 ? <FormMessage>{feedback.warnings.join(" ")}</FormMessage> : null}
         {feedback ? <OperationResult title={feedback.title} status={feedback.status} items={feedback.items} raw={feedback.raw} /> : null}
       </Panel>
 
