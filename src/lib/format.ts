@@ -61,6 +61,7 @@ const metricLabels: Record<string, string> = {
 const sourceLabels: Record<string, string> = {
   mycityair: "MyCityAir",
   plumelabs: "Plume Labs",
+  open_meteo: "Open-Meteo",
 };
 
 const metricThresholds: Record<string, { normal: number; elevated: number }> = {

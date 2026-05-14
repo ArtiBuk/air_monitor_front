@@ -5,6 +5,7 @@ import { EmptyState, PageHeader, Panel } from "../components/ui";
 import { ForecastChart } from "../components/ForecastChart";
 import { useTheme } from "../hooks/useTheme";
 import { ApiError, api } from "../lib/api";
+import { CITY_BACKGROUND_SOURCES, SOURCE_MYCITYAIR } from "../lib/airSources";
 import {
   formatDateTime,
   formatMetricName,
@@ -483,7 +484,7 @@ export function AirMapPage() {
     enabled: Boolean(historyWindow),
     queryFn: () =>
       api.listObservations({
-        source: "mycityair",
+        source: SOURCE_MYCITYAIR,
         metric: "aqi",
         start: historyWindow?.start,
         finish: historyWindow?.finish,
@@ -493,13 +494,31 @@ export function AirMapPage() {
   const cityHistoryQuery = useQuery({
     queryKey: ["air-map", "city-history", historyWindow?.start, historyWindow?.finish],
     enabled: Boolean(historyWindow),
-    queryFn: () =>
-      api.listObservations({
-        source: "plumelabs",
-        start: historyWindow?.start,
-        finish: historyWindow?.finish,
-        limit: 5000,
-      }),
+    queryFn: async () => {
+      const settled = await Promise.allSettled(
+        CITY_BACKGROUND_SOURCES.map((source) =>
+          api.listObservations({
+            source,
+            start: historyWindow?.start,
+            finish: historyWindow?.finish,
+            limit: 5000,
+          }),
+        ),
+      );
+
+      const successful = settled
+        .filter((entry): entry is PromiseFulfilledResult<Awaited<ReturnType<typeof api.listObservations>>> => entry.status === "fulfilled")
+        .flatMap((entry) => entry.value);
+
+      if (!successful.length) {
+        const failures = settled.filter((entry): entry is PromiseRejectedResult => entry.status === "rejected");
+        if (failures.length) {
+          throw failures[0].reason;
+        }
+      }
+
+      return successful;
+    },
   });
   const latestForecastQuery = useQuery({ queryKey: ["air-map", "forecast"], queryFn: () => queryOrNull(() => api.getLatestForecast()) });
 

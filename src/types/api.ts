@@ -66,6 +66,15 @@ export interface ObservationSyncResult {
   cleaned_count: number;
   db_created_count: number;
   db_updated_count: number;
+  warnings: string[];
+  source_reports: ObservationSyncSourceReport[];
+}
+
+export interface ObservationSyncSourceReport {
+  source: string;
+  status: string;
+  raw_count: number;
+  error: string;
 }
 
 export interface AirMapBounds {
