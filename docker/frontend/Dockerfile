@@ -13,4 +13,4 @@ FROM nginx:1.29-alpine
 COPY docker/frontend/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 
-EXPOSE 80
+EXPOSE 80 8081
