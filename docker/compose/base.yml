@@ -20,6 +20,19 @@ services:
     networks:
       - air_monitor_network
 
+  frontend_exporter:
+    image: nginx/nginx-prometheus-exporter:1.5.1
+    container_name: air-monitor-frontend-exporter
+    hostname: air-monitor-frontend-exporter
+    restart: unless-stopped
+    command:
+      - "--nginx.scrape-uri=http://air-monitor-frontend:8081/stub_status"
+    depends_on:
+      frontend:
+        condition: service_healthy
+    networks:
+      - air_monitor_network
+
 networks:
   air_monitor_network:
     driver: bridge

@@ -129,6 +129,7 @@ npm run preview
 ## Docker deploy
 
 Frontend deploy-контур собирает статический билд и отдаёт его через `nginx`, одновременно проксируя API-запросы на backend внутри общей Docker-сети.
+В том же контуре поднимается `frontend_exporter` для метрик `nginx` (scrape через `stub_status` на внутреннем порту `8081`).
 
 Основные команды:
 
@@ -142,6 +143,13 @@ make down
 
 Если менялся код интерфейса, одного `make up` недостаточно: сначала нужен `make build` или `make rebuild`, потом уже `make up`.
 
+Рекомендованный порядок для локального deploy-стенда:
+
+```bash
+make build
+make up
+```
+
 Если backend внутри сети доступен под другим именем или портом:
 
 ```bash
@@ -154,6 +162,21 @@ make up BACKEND_UPSTREAM_HOST=custom-backend BACKEND_UPSTREAM_PORT=8000 FRONTEND
 cd /path/to/air_monitor_back
 make deploy-up-all FRONTEND_DIR=/path/to/air_monitor_front
 ```
+
+### Метрики frontend
+
+- метрики `nginx` собираются через `frontend_exporter` автоматически;
+- `stub_status` слушает внутренний порт `8081` и не публикуется наружу;
+- scrape frontend метрик выполняется из backend Prometheus по target `air-monitor-frontend-exporter:9113`.
+
+Проверка:
+
+```bash
+make ps
+make logs SERVICE=frontend_exporter
+```
+
+Если запускаешь оба репозитория через backend `deploy-up-all`, frontend exporter поднимается автоматически, отдельная ручная настройка не нужна.
 
 ## Пользовательская инструкция
 
