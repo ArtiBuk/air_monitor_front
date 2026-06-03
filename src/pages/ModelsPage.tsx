@@ -252,13 +252,14 @@ export function ModelsPage() {
 
         <Panel title="Лидерборд по оценке" subtitle="Топ-4 готовых моделей: ошибки, объём датасета и текущий production-статус.">
           <Table
-            columns={["#", "Модель", "Источник", "Backtests", "Сэмплы", "RMSE", "MAE", "MAPE", "Статус"]}
+            columns={["#", "Модель", "Источник", "Backtests", "Сэмплы", "Свежесть", "RMSE", "MAE", "MAPE", "Статус"]}
             rows={(leaderboardQuery.data ?? []).map((row) => [
               `#${row.rank}`,
               row.model_name,
               row.metric_source === "backtest" ? "Backtest" : "Training",
               formatNumber(row.evaluation_count, "0"),
               formatNumber(row.dataset_sample_count, "0"),
+              row.dataset_freshness_hours !== null ? `${formatNumber(row.dataset_freshness_hours, "0.0")} ч` : "-",
               formatNumber(row.avg_overall_rmse),
               formatNumber(row.avg_overall_mae),
               formatNumber(row.avg_macro_mape),
