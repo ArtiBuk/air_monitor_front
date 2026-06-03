@@ -209,6 +209,10 @@ export interface ModelLeaderboardEntry {
   is_active: boolean;
   dataset_sample_count: number;
   dataset_master_row_count: number;
+  dataset_latest_timestamp_utc: string | null;
+  dataset_freshness_hours: number | null;
+  quality_ratio_to_best: number | null;
+  quality_delta_to_best: number | null;
   metric_source: "backtest" | "training";
   latest_evaluated_at_utc: string | null;
 }

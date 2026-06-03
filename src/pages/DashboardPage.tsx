@@ -232,15 +232,16 @@ export function DashboardPage() {
         </div>
       </Panel>
 
-      <Panel title="Лидерборд моделей" subtitle="Топ-4 готовых моделей с учётом ошибок и объёма датасета.">
+      <Panel title="Лидерборд моделей" subtitle="Топ-4 готовых моделей с учётом ошибок, свежести датасета и production-статуса.">
         {leaderboard.length ? (
           <Table
-            columns={["#", "Модель", "Источник", "Сэмплы", "RMSE", "MAE", "MAPE", "Статус"]}
+            columns={["#", "Модель", "Источник", "Сэмплы", "Свежесть", "RMSE", "MAE", "MAPE", "Статус"]}
             rows={leaderboard.map((item) => [
               `#${item.rank}`,
               item.model_name,
               item.metric_source === "backtest" ? "Backtest" : "Training",
               formatNumber(item.dataset_sample_count, "0"),
+              item.dataset_freshness_hours !== null ? `${formatNumber(item.dataset_freshness_hours, "0.0")} ч` : "-",
               formatNumber(item.avg_overall_rmse),
               formatNumber(item.avg_overall_mae),
               formatNumber(item.avg_macro_mape),

@@ -258,6 +258,8 @@ export function ActiveModelOverview({
   const coverage = leaderboardEntry?.avg_coverage_ratio ?? null;
   const metricSourceLabel = leaderboardEntry?.metric_source === "backtest" ? "ретропроверка" : "test split";
   const productionLabel = leaderboardEntry ? `#${leaderboardEntry.rank} в production-рейтинге` : "готова для production";
+  const freshnessHours = leaderboardEntry?.dataset_freshness_hours ?? null;
+  const freshnessTimestamp = leaderboardEntry?.dataset_latest_timestamp_utc ?? null;
 
   return (
     <div className="model-spotlight">
@@ -270,7 +272,7 @@ export function ActiveModelOverview({
         <strong>{model.name}</strong>
         <p>
           Модель использует окно {model.input_len_hours}ч и строит прогноз на {model.forecast_horizon_hours}ч. В hourly
-          pipeline приоритет идёт по ошибкам RMSE/MAE/MAPE, а затем по объёму датасета.
+          pipeline активная модель выбирается по backtest-метрикам с guardrail по качеству и приоритетом более свежих данных.
         </p>
         <div className="model-target-inline">
           <span>Целевые показатели</span>
@@ -321,6 +323,11 @@ export function ActiveModelOverview({
         <div className="model-spec-card">
           <span>Создана</span>
           <strong>{formatFullDateTime(model.created_at)}</strong>
+        </div>
+        <div className="model-spec-card">
+          <span>Свежесть датасета</span>
+          <strong>{leaderboardEntry ? `${formatNumber(freshnessHours, "0.0")} ч` : "-"}</strong>
+          <small>{freshnessTimestamp ? formatFullDateTime(freshnessTimestamp) : "нет данных по времени среза"}</small>
         </div>
       </div>
     </div>
